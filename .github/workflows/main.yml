@@ -7,22 +7,39 @@ on:
 jobs:
   convert:
     runs-on: ubuntu-latest
+    env:
+      GIT_PRIVATE_KEY: ${{ secrets.GIT_PRIVATE_KEY }}
     steps:
       - name: 更新代码
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: 安装环境
         uses: actions/setup-python@master
         with:
-          python-version: 3.7
+          python-version: 3.11
       - name: 安装依赖
         run: |
           pip3 install -r requirements.txt
       - name: 拉取脚本
         run: |
           git clone https://github.com/YAWAsau/backup_script.git
-          mv backup_script speed-backup
       - name: 开始转换
         run: |
           python3 convert.py
-          cd speed-backup
-          ls
+      - name: 打包
+        run: zip -r backup_script.zip backup_script
+      - name: 发布
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: TODO New Release.
+          draft: false
+          prerelease: false
+      - name: 上传附件
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./backup_script.zip
+          asset_name: backup_script.zip
+          asset_content_type: application/zip

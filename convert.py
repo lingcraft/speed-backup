@@ -1,6 +1,6 @@
 import os, zhconv
 
-for root, dirs, files in os.walk("speed-backup"):
+for root, dirs, files in os.walk("backup_script"):
     for file_name in list(filter(lambda e: e.endswith((".sh", ".conf")) or root.endswith("script"), files)):
         with open(os.path.join(root, file_name), "r", encoding="utf-8") as f:
             content = f.read()

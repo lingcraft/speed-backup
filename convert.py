@@ -47,7 +47,7 @@ def upload(version):
         for root, dirs, files in os.walk("speed-backup"):
             for file in files:
                 f.write(os.path.join(root, file))
-    git = github.Github(auth=github.Auth.Token(os.getenv("GITHUB_TOKEN")))
+    git = github.Github(auth=github.Auth.Token(os.getenv("GIT_TOKEN")))
     repo = git.get_repo("lingcraft/speed-backup")
     releases = list(filter(lambda x: x.tag_name == version, repo.get_releases()))
     if len(releases) == 0:

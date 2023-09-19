@@ -20,6 +20,7 @@ jobs:
       - name: 拉取脚本
         run: |
           git clone https://github.com/YAWAsau/backup_script.git
+          mv backup_script speed-backup
       - name: 开始转换
         run: |
           python3 convert.py

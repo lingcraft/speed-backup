@@ -22,15 +22,14 @@ jobs:
           git clone https://github.com/YAWAsau/backup_script.git
           rm -r backup_script/DCIM
           rm -r backup_script/.git
-          rm README.md
-          rm LICENSE
+          rm backup_script/README.md
+          rm backup_script/LICENSE
       - name: 开始转换
         run: |
           python3 convert.py
       - name: 打包
         run: |
           zip -r backup_script.zip backup_script
-          ls
       - name: 发布
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')

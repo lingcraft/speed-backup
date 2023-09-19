@@ -20,8 +20,10 @@ jobs:
       - name: 拉取脚本
         run: |
           git clone https://github.com/YAWAsau/backup_script.git
-          rm -rf backup_script/DCIM
-          rm -rf backup_script/.git
+          rm -r backup_script/DCIM
+          rm -r backup_script/.git
+          rm README.md
+          rm LICENSE
       - name: 开始转换
         run: |
           python3 convert.py

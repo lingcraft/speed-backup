@@ -2,10 +2,10 @@ import github, os, requests, zhconv, zipfile
 
 
 def main():
-    version = download()
+    version, description = download()
     if version:
         convert()
-        upload(version)
+        upload(version, description)
 
 
 def download():
@@ -16,6 +16,7 @@ def download():
         if "tag_name" in release:
             assets = release["assets"]
             tag = release["tag_name"]
+            body = release["body"]
             for asset in assets:
                 file_url = asset["browser_download_url"]
                 file_name = asset["name"]
@@ -27,7 +28,7 @@ def download():
                     with zipfile.ZipFile(file_name, "r") as f:
                         f.extractall("speed-backup")
                     os.remove(file_name)
-            return tag
+            return tag, body
         else:
             return False
 
@@ -42,7 +43,7 @@ def convert():
                 f.write(zhconv.convert(content, "zh-cn"))
 
 
-def upload(version):
+def upload(version, description):
     with zipfile.ZipFile("speed-backup.zip", "w") as f:
         for root, dirs, files in os.walk("speed-backup"):
             for file in files:
@@ -51,7 +52,7 @@ def upload(version):
     repo = git.get_repo("lingcraft/speed-backup")
     releases = list(filter(lambda x: x.tag_name == version, repo.get_releases()))
     if len(releases) == 0:
-        release = repo.create_git_release(version, version, version, False, False, False)
+        release = repo.create_git_release(version, version, description, False, False, False)
         release.upload_asset("speed-backup.zip", f"speed-backup{version}.zip", "zip", f"speed-backup{version}.zip")
 
 

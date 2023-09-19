@@ -1,0 +1,28 @@
+name: 天翼云盘自动签到
+
+on:
+  push:
+  schedule:
+    - cron: 0 16 * * *
+  workflow_dispatch:
+
+jobs:
+  sign-in:
+    env:
+      USERNAME: ${{ secrets.USERNAME }}
+      PASSWORD: ${{ secrets.PASSWORD }}
+      PUSHER_WECHAT: ${{ secrets.PUSHER_WECHAT }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v2
+      - name: 安装环境
+        uses: actions/setup-python@master
+        with:
+          python-version: 3.7
+      - name: 安装依赖
+        run: |
+          pip3 install -r requirements.txt
+      - name: 开始签到
+        run: |
+          python3 ecloud.py

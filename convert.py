@@ -5,7 +5,7 @@ def main():
     version, description = download()
     if version:
         convert()
-        upload(version, description)
+        upload(version, zhconv.convert(description, "zh-cn"))
 
 
 def download():

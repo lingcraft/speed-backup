@@ -24,7 +24,9 @@ jobs:
         run: |
           python3 convert.py
       - name: 打包
-        run: zip -r backup_script.zip backup_script
+        run: |
+          zip -r backup_script.zip backup_script
+          ls
       - name: 发布
         id: create_release
         uses: actions/create-release@v1
@@ -40,6 +42,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./backup_script.zip
+          asset_path: backup_script.zip
           asset_name: backup_script.zip
           asset_content_type: application/zip

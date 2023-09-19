@@ -9,7 +9,7 @@ def main():
 
 
 def download():
-    url = f"https://api.github.com/repos/YAWAsau/backup_script/releases/latest"
+    url = "https://api.github.com/repos/YAWAsau/backup_script/releases/latest"
     response = requests.get(url)
     if response.status_code == 200:
         release = response.json()

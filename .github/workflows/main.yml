@@ -7,6 +7,8 @@ on:
 jobs:
   convert:
     runs-on: ubuntu-latest
+    env:
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4

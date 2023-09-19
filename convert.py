@@ -6,7 +6,6 @@ def main():
     if version:
         convert()
         upload(version)
-        print("哈哈")
 
 
 def download():

@@ -7,8 +7,6 @@ on:
 jobs:
   convert:
     runs-on: ubuntu-latest
-    env:
-      GIT_PRIVATE_KEY: ${{ secrets.GIT_PRIVATE_KEY }}
     steps:
       - name: 更新代码
         uses: actions/checkout@v3
@@ -30,6 +28,8 @@ jobs:
       - name: 发布
         id: create_release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIT_PRIVATE_KEY }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}

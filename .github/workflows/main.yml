@@ -21,8 +21,8 @@ jobs:
         run: |
           git clone https://github.com/YAWAsau/backup_script.git
           mv backup_script speed-backup
-          cd speed-backup
-          ls
       - name: 开始转换
         run: |
           python3 convert.py
+          cd speed-backup
+          ls

@@ -35,13 +35,17 @@ def convert(content):
     return zhconv.convert(content, "zh-cn")
 
 
+def path(dir_path, file_name):
+    return os.path.join(dir_path, file_name)
+
+
 def simplify():
     for root, dirs, files in os.walk(proj):
         for file_name in list(filter(lambda e: e.endswith((".sh", ".conf")) or root.endswith("script"), files)):
-            with open(os.path.join(root, file_name), "r", encoding="utf-8") as f:
+            with open(path(root, file_name), "r", encoding="utf-8") as f:
                 content = f.read()
-            os.remove(os.path.join(root, file_name))
-            with open(os.path.join(root, convert(file_name)), "w", encoding="utf-8", newline="\n") as f:
+            os.remove(path(root, file_name))
+            with open(path(root, convert(file_name)), "w", encoding="utf-8", newline="\n") as f:
                 f.write(convert(content))
 
 
@@ -49,9 +53,8 @@ def upload(version, description):
     with zipfile.ZipFile(f"{proj}.zip", "w") as f:
         for root, dirs, files in os.walk(proj):
             for file in files:
-                f.write(os.path.join(root, file))
-    git = Github(auth=token)
-    repo = git.get_repo(my_repo)
+                f.write(path(root, file))
+    repo = Github(auth=token).get_repo(my_repo)
     releases = list(filter(lambda x: x.tag_name == version, repo.get_releases()))
     if len(releases) == 0:
         release = repo.create_git_release(version, version, description, False, False, False)

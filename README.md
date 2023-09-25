@@ -13,7 +13,7 @@
 此仓库的版本为简体版，如果需要**繁体原版**，可前往这里下载：
 > 原版：[backup_script](https://github.com/YAWAsau/backup_script) 。
 
-PS. 简体版本使用 Github Action 自动构建，1小时执行一次，所以在原仓库发布新 release 后，不会立马更新简体版。
+PS. 简体版本使用 Github Action 自动构建，每30分钟执行一次，所以在原仓库发布新 release 后，不会立马更新简体版。
 
 ## 优势
 

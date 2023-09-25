@@ -57,9 +57,11 @@ def upload(version, description):
                 f.write(path(root, file))
     repo = Github(auth=token).get_repo(my_repo)
     releases = list(filter(lambda x: x.tag_name == version, repo.get_releases()))
-    if len(releases) == 0:
-        release = repo.create_git_release(version, version, description, False, False, False)
-        release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
+    if len(releases):
+        for release in releases:
+            release.delete_release()
+    release = repo.create_git_release(version, version, description, False, False, False)
+    release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
 
 
 if __name__ == "__main__":

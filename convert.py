@@ -4,6 +4,7 @@ from github import Github, Auth
 proj = "speed-backup"
 my_repo = f"lingcraft/{proj}"
 src_repo = "YAWAsau/backup_script"
+old_repo = "Petit-Abba/backup_script_zh-CN"
 token = Auth.Token(os.getenv("GITHUB_TOKEN"))
 
 

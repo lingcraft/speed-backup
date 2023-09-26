@@ -9,7 +9,7 @@ token = Auth.Token(os.getenv("GITHUB_TOKEN"))
 
 
 def main():
-    print(os.getenv("GITHUB_TOKEN"))
+    print(token.token())
     version, description = download()
     if version:
         simplify()

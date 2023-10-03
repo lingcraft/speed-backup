@@ -58,16 +58,8 @@ def upload(version, description):
     repo = Github(auth=token).get_repo(my_repo)
     releases = list(filter(lambda x: x.tag_name == version, repo.get_releases()))
     if len(releases) == 0:
-        requests.post(f"https://api.github.com/repos/{my_repo}/releases", data={
-            "tag_name": version,
-            "name": version,
-            "body": description
-        }, headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {token.token}",
-        })
-        # release = repo.create_git_release(version, version, description, False, False, False)
-        # release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
+        release = repo.create_git_release(version, version, description, False, False, False)
+        release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
 
 
 if __name__ == "__main__":

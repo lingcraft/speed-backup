@@ -1,5 +1,6 @@
-import os, requests, zhconv, zipfile
+import os, requests, zhconv
 from github import Github, Auth
+from zipfile import ZipFile, ZIP_DEFLATED
 
 proj = "speed-backup"
 my_repo = f"lingcraft/{proj}"
@@ -24,7 +25,7 @@ def download():
                 with open(asset.name, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-                with zipfile.ZipFile(asset.name, "r") as f:
+                with ZipFile(asset.name, "r") as f:
                     f.extractall(proj)
                 os.remove(asset.name)
         return release.tag_name, release.body
@@ -51,7 +52,7 @@ def simplify():
 
 
 def upload(version, description):
-    with zipfile.ZipFile(f"{proj}.zip", "w") as f:
+    with ZipFile(f"{proj}.zip", "w", ZIP_DEFLATED) as f:
         for root, dirs, files in os.walk(proj):
             for file in files:
                 f.write(path(root, file))

@@ -24,3 +24,12 @@ jobs:
       - name: 开始转换
         run: |
           python3 convert.py
+      - name: 测试
+        id: get_version
+        run: |
+          echo ::set-output name=tag1::${GITHUB_REF/refs\/tags\//}
+          echo ::set-output name=tag2::${GITHUB_REF#refs/*/}
+      - name: 测试1
+        run: |
+          echo ${{ steps.get_version.outputs.tag1 }}
+          echo ${{ steps.get_version.outputs.tag2 }}

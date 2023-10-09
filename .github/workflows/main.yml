@@ -31,6 +31,6 @@ jobs:
           echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
       - name: 测试1
         run: |
-          echo $tag
+#          echo $tag
           echo ${{ steps.get_version.outputs.tag }}
-          echo ${{ env.tag }}
+#          echo ${{ env.tag }}

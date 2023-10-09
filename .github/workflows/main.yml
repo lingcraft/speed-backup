@@ -24,7 +24,3 @@ jobs:
       - name: 开始转换
         run: |
           python3 convert.py
-      - name: 测试
-        run: |
-          $a = git ls-remote --tags https://github.com/YAWAsau/backup_script.git
-          echo "tag=1" >> $GITHUB_ENV

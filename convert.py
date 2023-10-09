@@ -64,16 +64,8 @@ def upload(version, description):
     else:
         release = releases[0]
         for asset in release.get_assets():
-            # asset.delete_asset()
-            result = requests.delete(
-                f"https://api.github.com/repos/{my_repo}/releases/assets/{asset.id}",
-                headers={
-                    "Accept": "application/vnd.github+json",
-                    "Authorization": f"Bearer {token.token}"
-                }
-            )
-            print(result.status_code)
-        # release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
+            asset.delete_asset()
+        release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
 
 
 if __name__ == "__main__":

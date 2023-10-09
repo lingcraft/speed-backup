@@ -72,7 +72,7 @@ def upload(version, description):
                 old_size = os.path.getsize(asset.name)
                 os.remove(asset.name)
                 size = os.path.getsize(f"{proj}.zip")
-                print("old: " + old_size + ", new: " + size)
+                print(f"old: {old_size}, new: {size}")
                 if size != old_size:
                     asset.delete_asset()
                     release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")

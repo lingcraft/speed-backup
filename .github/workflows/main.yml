@@ -27,7 +27,7 @@ jobs:
       - name: 测试
         id: get_version
         run: |
-          echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+#          echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
           echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
       - name: 测试1
         run: |

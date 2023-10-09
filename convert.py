@@ -63,6 +63,7 @@ def upload(version, description):
         release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
     else:
         release = releases[0]
+        print(release.get_assets().totalCount)
         for asset in release.get_assets():
             # asset.delete_asset()
             requests.delete(

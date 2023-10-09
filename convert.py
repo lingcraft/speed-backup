@@ -3,7 +3,6 @@ from github import Github, Auth
 from requests import HTTPError
 from zipfile import ZipFile, ZIP_DEFLATED
 
-
 proj = "speed-backup"
 my_repo = f"lingcraft/{proj}"
 src_repo = "YAWAsau/backup_script"

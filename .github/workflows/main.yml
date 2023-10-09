@@ -26,7 +26,8 @@ jobs:
           python3 convert.py
       - name: 测试
         run: |
-          echo "tag=git ls-remote --tags https://github.com/YAWAsau/backup_script.git" >> $GITHUB_ENV
+          
+          echo "tag=${ git ls-remote --tags https://github.com/YAWAsau/backup_script.git }" >> $GITHUB_ENV
       - name: 输出
         run: |
           echo $tag

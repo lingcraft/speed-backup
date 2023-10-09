@@ -1,6 +1,5 @@
 import os, requests, zhconv
 from github import Github, Auth
-from hashlib import md5
 from zipfile import ZipFile, ZIP_DEFLATED
 
 proj = "speed-backup"
@@ -70,16 +69,11 @@ def upload(version, description):
                 with open(asset.name, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-                with open(asset.name, "rb") as f:
-                    data = f.read()
-                hash_old = md5(data).hexdigest()
-                print("old:" + hash_old)
+                old_size = os.path.getsize(asset.name)
                 os.remove(asset.name)
-                with open(f"{proj}.zip", "rb") as f:
-                    data = f.read()
-                hash_new = md5(data).hexdigest()
-                print("new:" + hash_new)
-                if hash_new != hash_old:
+                size = os.path.getsize(f"{proj}.zip")
+                print("old: " + old_size + ", new: " + size)
+                if size != old_size:
                     asset.delete_asset()
                     release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
 

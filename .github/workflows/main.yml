@@ -27,7 +27,5 @@ jobs:
       - name: 测试
         id: get_version
         run: |
-          echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
-      - name: 测试1
-        run: |
-          echo ${{ output.tag }}
+          echo "tag=git ls-remote --tags https://github.com/YAWAsau/backup_script" >> $GITHUB_ENV
+          echo $tag

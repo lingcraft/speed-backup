@@ -24,3 +24,6 @@ jobs:
       - name: 开始转换
         run: |
           python3 convert.py
+      - name: 测试
+        run: |
+          echo ${{ github.ref }}

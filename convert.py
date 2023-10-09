@@ -1,6 +1,8 @@
 import os, requests, zhconv
 from github import Github, Auth
+from requests import HTTPError
 from zipfile import ZipFile, ZIP_DEFLATED
+
 
 proj = "speed-backup"
 my_repo = f"lingcraft/{proj}"
@@ -10,21 +12,17 @@ token = Auth.Token(os.getenv("GITHUB_TOKEN"))
 
 
 def main():
-    version, description = download()
+    version, description = get_latest()
     if version:
         simplify()
         upload(version, convert(description))
 
 
-def download():
+def get_latest():
     release = Github().get_repo(src_repo).get_latest_release()
     if len(release.tag_name):
         for asset in release.assets:
-            with requests.get(asset.browser_download_url, stream=True) as r:
-                r.raise_for_status()
-                with open(asset.name, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
+            if download(asset.browser_download_url, asset.name):
                 with ZipFile(asset.name, "r") as f:
                     f.extractall(proj)
                 os.remove(asset.name)
@@ -33,12 +31,28 @@ def download():
         return False
 
 
+def download(url, name):
+    with requests.get(url, stream=True) as r:
+        try:
+            r.raise_for_status()
+            with open(name, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            return True
+        except HTTPError:
+            return False
+
+
 def convert(content):
     return zhconv.convert(content, "zh-cn")
 
 
 def path(dir_path, file_name):
     return os.path.join(dir_path, file_name)
+
+
+def size(name):
+    return os.path.getsize(name)
 
 
 def simplify():
@@ -64,17 +78,11 @@ def upload(version, description):
     else:
         release = releases[0]
         for asset in release.get_assets():
-            with requests.get(asset.browser_download_url, stream=True) as r:
-                r.raise_for_status()
-                with open(asset.name, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                old_size = os.path.getsize(asset.name)
-                os.remove(asset.name)
-                size = os.path.getsize(f"{proj}.zip")
-                if size != old_size:
+            if download(asset.browser_download_url, asset.name):
+                if size(f"{proj}.zip") != size(asset.name):
                     asset.delete_asset()
                     release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
+                os.remove(asset.name)
 
 
 if __name__ == "__main__":

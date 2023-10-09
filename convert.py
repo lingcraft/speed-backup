@@ -61,6 +61,11 @@ def upload(version, description):
     if len(releases) == 0:
         release = repo.create_git_release(version, version, description, False, False, False)
         release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
+    else:
+        release = releases[0]
+        for asset in release.get_assets():
+            asset.delete_asset()
+        release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
 
 
 if __name__ == "__main__":

@@ -30,4 +30,4 @@ jobs:
           echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
       - name: 测试1
         run: |
-          echo ${{ outputs.tag }}
+          echo ${{ output.tag }}

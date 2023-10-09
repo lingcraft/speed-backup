@@ -27,9 +27,10 @@ jobs:
       - name: 测试
         id: get_version
         run: |
-          echo ::set-output name=tag1::${GITHUB_REF/refs\/tags\//}
-          echo ::set-output name=tag2::${GITHUB_REF#refs/*/}
+          echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
       - name: 测试1
         run: |
-          echo ${{ steps.get_version.outputs.tag1 }}
-          echo ${{ steps.get_version.outputs.tag2 }}
+          echo $tag
+          echo ${{ steps.get_version.outputs.tag }}
+          echo ${{ env.tag }}

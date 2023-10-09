@@ -72,7 +72,7 @@ def upload(version, description):
                     "Authorization": f"Bearer {token.token}"
                 }
             )
-        release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
+        # release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "zip", f"{proj}{version}.zip")
 
 
 if __name__ == "__main__":

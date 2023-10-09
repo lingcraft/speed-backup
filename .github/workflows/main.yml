@@ -1,4 +1,4 @@
-name: 简体化备份脚本
+name: simplify
 
 on:
   push:

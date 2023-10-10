@@ -31,15 +31,16 @@ def get_latest():
 
 
 def download(url, name):
-    with requests.get(url, stream=True) as r:
-        try:
+    try:
+        with requests.get(url, stream=True) as r:
             r.raise_for_status()
             with open(name, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-            return True
-        except HTTPError:
-            return False
+    except HTTPError:
+        return False
+    else:
+        return True
 
 
 def convert(content):

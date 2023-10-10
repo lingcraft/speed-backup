@@ -1,7 +1,8 @@
 import os, requests
 from github import Github, Auth
 from requests import HTTPError
-from zipfile import ZipFile, ZIP_DEFLATED
+from shutil import make_archive, unpack_archive
+from zhconv import convert
 
 proj = "speed-backup"
 my_repo = f"lingcraft/{proj}"

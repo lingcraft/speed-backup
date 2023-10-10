@@ -27,7 +27,7 @@ def get_latest():
                 os.remove(asset.name)
         return release.tag_name, release.body
     else:
-        return False
+        return False, False
 
 
 def download(url, name):

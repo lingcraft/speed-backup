@@ -23,7 +23,6 @@ def get_latest():
         for asset in release.assets:
             if download(asset.browser_download_url, asset.name):
                 unpack_archive(asset.name, proj)
-                os.remove(asset.name)
         return release.tag_name, convert(release.body, "zh-cn")
     else:
         return False, False
@@ -47,7 +46,7 @@ def simplify():
         for file_name in list(filter(lambda e: e.endswith((".sh", ".conf")) or root.endswith("script"), files)):
             file = os.path.join(root, file_name)
             with open(file, "r", encoding="utf-8") as f:
-                content = convert(f.read(), "zh-cn")
+                content = convert(f.read(), "zh-cn").replace("shell_language=\"zh-TW\"", "shell_language=\"zh-CN\"")
             os.remove(file)
             with open(convert(file, "zh-cn"), "w", encoding="utf-8", newline="\n") as f:
                 f.write(content)
@@ -67,7 +66,6 @@ def upload(version, description):
                 if os.path.getsize(f"{proj}.zip") != os.path.getsize(asset.name):
                     asset.delete_asset()
                     release.upload_asset(f"{proj}.zip", f"{proj}{version}.zip", "application/zip", f"{proj}{version}.zip")
-                os.remove(asset.name)
 
 
 if __name__ == "__main__":

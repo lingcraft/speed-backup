@@ -7,7 +7,6 @@ from zhconv import convert
 proj = "speed-backup"
 my_repo = f"lingcraft/{proj}"
 src_repo = "YAWAsau/backup_script"
-old_repo = "Petit-Abba/backup_script_zh-CN"
 token = Auth.Token(os.getenv("GITHUB_TOKEN"))
 
 
@@ -48,7 +47,7 @@ def simplify():
         for file_name in list(filter(lambda e: e.endswith((".sh", ".conf")) or root.endswith("script"), files)):
             file = os.path.join(root, file_name)
             with open(file, "r", encoding="utf-8") as f:
-                content = convert(f.read().replace(old_repo, my_repo), "zh-cn")
+                content = convert(f.read(), "zh-cn")
             os.remove(file)
             with open(convert(file, "zh-cn"), "w", encoding="utf-8", newline="\n") as f:
                 f.write(content)

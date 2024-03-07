@@ -43,7 +43,7 @@ def download(url, name):
 
 def simplify():
     for root, dirs, files in os.walk(proj):
-        for file_name in list(filter(lambda e: e.endswith((".sh", ".conf")) or root.endswith("script"), files)):
+        for file_name in list(filter(lambda e: e.endswith((".sh", ".conf", "_List")) or root.endswith("script"), files)):
             file = os.path.join(root, file_name)
             with open(file, "r", encoding="utf-8") as f:
                 content = convert(f.read(), "zh-cn").replace("shell_language=\"zh-TW\"", "shell_language=\"zh-CN\"")

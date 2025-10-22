@@ -10,10 +10,11 @@
 创作该脚本是为了使用户能够更加完整地**备份/恢复**应用数据，
 支持设备必须符合以下条件：`Android 8+`+`arm64`。
 
-原版脚本现在已经支持根据执行环境自动转换为简体中文了，本仓库的存在意义已经不大了，发布的包和原版自动转换为简体后基本无差别，**原版**可前往这里下载：
+本仓库为简体中文修正版，对原脚本中部分繁体直接转换为简体的名词进行了修正，对于脚本的执行逻辑无任何修改
+具体使用哪个版本请自行决定，**原版**可前往这里下载：
 > 原版：[backup_script](https://github.com/YAWAsau/backup_script) 。
 
-简体版本使用 Github Action 自动构建，每小时执行1次，所以在原仓库发布新 release 后，不会立马更新简体版。
+简体中文版使用 Github Action 自动构建，每小时执行1次，所以在原仓库发布新 release 后，不会立马更新简体版。
 
 ## 优势
 
@@ -88,7 +89,7 @@ speed-backup.zip
 ## 关于反馈
 - 如果使用过程中出现问题，请携带截图并详细说明问题，建立 [issues](https://github.com/YAWAsau/backup_script/issues)。
 - 酷安 @[落叶凄凉TEL](http://www.coolapk.com/u/2277637)
-- QQ组 976613477 很少上 尽量来TG
+- QQ群 976613477 很少上 尽量来TG
 - TG https://t.me/yawasau_script
 
 ## 答疑
@@ -116,7 +117,7 @@ A5;脚本备份时会比对上次备份时的备份SIZE大小 如果有差异就
 .(https://paypal.me/YAWAsau?country.x=TW&locale.x=zh_TW))
 
 
-## 铭谢贡献
+## 感谢贡献者
 - 臭批老k([kmou424](https://github.com/kmou424))：提供部分与验证函数思路
 - 屑老方([雄氏老方](http://www.coolapk.com/u/665894))：提供自动更新脚本方案
 - 胖子老陈(雨季骚年)

@@ -13,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: 安装环境
-        uses: actions/setup-python@master
+        uses: actions/setup-python@v6
         with:
-          python-version: 3.11
+          python-version: 3.13
       - name: 安装依赖
         run: |
           pip3 install -r requirements.txt

@@ -20,7 +20,7 @@ jobs:
           python-version: 3.13
       - name: 安装依赖
         run: |
-          pip3 install -r requirements.txt
+          pip install -r requirements.txt
       - name: 开始转换
         run: |
-          python3 convert.py
+          python convert.py

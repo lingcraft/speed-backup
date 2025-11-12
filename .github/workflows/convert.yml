@@ -4,7 +4,10 @@ on:
   push:
   schedule:
     - cron: 0 * * * *
-  workflow_dispatch:
+  workflow_dispatch: # workflow_dispatch 要放最后，否则会导致 schedule 失效
+
+permissions:
+  contents: write
 
 jobs:
   convert:

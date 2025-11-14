@@ -1,10 +1,10 @@
-from os import getenv
+import os, requests
+from requests import HTTPError
 from github import Github, Auth
-from requests import get, HTTPError
 from shutil import make_archive, unpack_archive
 from zhconv import convert
 
-auth = Auth.Token(getenv("GITHUB_TOKEN"))
+auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
 git = Github(auth=auth)
 proj_name = "speed-backup"
 my_repo = git.get_repo(f"lingcraft/{proj_name}")
@@ -49,7 +49,7 @@ def get_latest_release():
 
 def download(url, name):
     try:
-        with get(url, stream=True) as r:
+        with requests.get(url, stream=True) as r:
             r.raise_for_status()
             with open(name, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):

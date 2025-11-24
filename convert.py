@@ -1,11 +1,8 @@
-import os, requests
-from requests import HTTPError
-from github import Github, Auth
-from shutil import make_archive, unpack_archive
-from zhconv import convert
+import github, os, shutil, zhconv
+import env
 
-auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
-git = Github(auth=auth)
+auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
+git = github.Github(auth=auth)
 proj_name = "speed-backup"
 my_repo = git.get_repo(f"lingcraft/{proj_name}")
 src_repo = git.get_repo("YAWAsau/backup_script")
@@ -30,8 +27,7 @@ version, description, readme = "", "", ""
 
 
 def main():
-    get_latest_release()
-    if version:
+    if get_latest_release():
         simplify()
         upload()
         update_readme()
@@ -42,25 +38,16 @@ def get_latest_release():
     release = src_repo.get_latest_release()
     if len(release.tag_name):
         for asset in release.assets:
-            if download(asset.browser_download_url, asset.name):
-                unpack_archive(asset.name, proj_name)
-        version, description = release.tag_name, correct(convert(release.body, "zh-cn"))
+            asset.download_asset(asset.name, 8192)
+            shutil.unpack_archive(asset.name, proj_name)
+        if os.path.isdir(proj_name):
+            version, description = release.tag_name, convert(release.body)
+            return True
+    return False
 
 
-def download(url, name):
-    try:
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            with open(name, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-    except HTTPError:
-        return False
-    else:
-        return True
-
-
-def correct(content):
+def convert(content):
+    content = zhconv.convert(content, "zh-cn")
     for key, value in trans_dict.items():
         content = content.replace(key, value)
     return content
@@ -71,29 +58,29 @@ def simplify():
         for file_name in (file_name for file_name in file_names if file_name.endswith(suffixes)):
             file = os.path.join(path, file_name)
             with open(file, "r", encoding="utf-8") as f:
-                content = correct(convert(f.read(), "zh-cn"))
+                content = convert(f.read())
             os.remove(file)
-            with open(convert(file, "zh-cn"), "w", encoding="utf-8", newline="\n") as f:
+            with open(convert(file), "w", encoding="utf-8", newline="\n") as f:
                 f.write(content)
 
 
 def upload():
-    make_archive(proj_name, "zip", proj_name)
+    shutil.make_archive(proj_name, "zip", proj_name)
     release = next((release for release in my_repo.get_releases() if release.tag_name == version), None)
     if release is None:
         release = my_repo.create_git_release(version, version, description, False, False, False)
+        release.upload_asset(f"{proj_name}.zip", f"{proj_name}{version}.zip", "application/zip", f"{proj_name}{version}.zip")
     else:
         for asset in release.get_assets():
-            if download(asset.browser_download_url, asset.name) and os.path.getsize(f"{proj_name}.zip") != os.path.getsize(asset.name):
+            asset.download_asset(asset.name, 8192)
+            if os.path.getsize(f"{proj_name}.zip") != os.path.getsize(asset.name):
                 asset.delete_asset()
-            else:
-                return
-    release.upload_asset(f"{proj_name}.zip", f"{proj_name}{version}.zip", "application/zip", f"{proj_name}{version}.zip")
+                release.upload_asset(f"{proj_name}.zip", f"{proj_name}{version}.zip", "application/zip", f"{proj_name}{version}.zip")
 
 
 def update_readme():
     global readme
-    readme = correct(convert(src_repo.get_readme().decoded_content.decode(), "zh-cn"))
+    readme = convert(src_repo.get_readme().decoded_content.decode())
     readme_lines = readme.splitlines()
     start, end = 0, 0
     for index, line in enumerate(readme_lines):

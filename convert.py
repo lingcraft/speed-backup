@@ -1,5 +1,4 @@
 import github, os, shutil, zhconv
-import env
 
 auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
 git = github.Github(auth=auth)

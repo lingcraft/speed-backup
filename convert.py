@@ -44,7 +44,7 @@ def get_latest_release():
         for asset in release.assets:
             if download(asset.browser_download_url, asset.name):
                 unpack_archive(asset.name, proj_name)
-        version, description = release.tag_name, convert(release.body, "zh-cn")
+        version, description = release.tag_name, correct(convert(release.body, "zh-cn"))
 
 
 def download(url, name):

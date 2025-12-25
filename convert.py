@@ -106,7 +106,7 @@ def update_readme():
         elif "优势" in line:
             end = index - 1
     readme = readme.replace("\n".join(readme_lines[start:end]), (
-        "本仓库为简体中文修正版，对原脚本中部分繁体直接转换为简体的名词进行了修正，对于脚本的执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：\n"
+        "本仓库为**简体中文修正版**，对原脚本中部分繁体直接转换为简体的名词进行了修正，脚本执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：\n"
         "> 原版：[backup_script](https://github.com/YAWAsau/backup_script) 。\n\n"
         "简体中文版使用 Github Action 自动构建，每小时执行1次，所以在原仓库发布新 release 后，不会立马更新简体版。"
     ))

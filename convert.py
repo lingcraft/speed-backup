@@ -1,5 +1,4 @@
 import github, os, shutil, opencc
-# import env
 
 auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
 git = github.Github(auth=auth)

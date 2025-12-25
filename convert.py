@@ -1,4 +1,5 @@
 import github, os, shutil, opencc
+import env
 
 auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
 git = github.Github(auth=auth)
@@ -108,7 +109,7 @@ def update_readme():
     file = my_repo.get_readme()
     old_readme = file.decoded_content.decode()
     if readme != old_readme:
-        my_repo.update_file(path=file.path, message="更新 README.md", content=readme, sha=file.sha)
+        my_repo.update_file(path=file.path, message="更新 README", content=readme, sha=file.sha)
 
 
 if __name__ == "__main__":

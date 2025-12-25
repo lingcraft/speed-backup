@@ -122,4 +122,4 @@ A5;脚本备份时会比对上次备份时的备份SIZE大小 如果有差异就
 - 胖子老陈(雨季骚年)
 - XayahSuSuSu([XayahSuSuSu](https://github.com/XayahSuSuSu))：提供App支持,dex支持
 
-`文件编辑：Petit-Abba, YuKongA`
+`文档编辑：Petit-Abba, YuKongA`

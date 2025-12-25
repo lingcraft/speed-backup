@@ -1,3 +1,2 @@
-zhconv ~= 1.4.3
-requests ~= 2.32.5
 PyGithub ~= 2.8.1
+opencc ~= 1.1.9

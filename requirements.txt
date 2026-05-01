@@ -1,2 +1,2 @@
 PyGithub ~= 2.8.1
-opencc ~= 1.1.9
+opencc ~= 1.2.0

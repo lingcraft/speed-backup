@@ -103,7 +103,7 @@ def update_readme():
     for index, line in enumerate(readme_lines):
         if "概述" in line:
             start = index + 5
-        elif "优势" in line:
+        elif "功能特色" in line:
             end = index - 1
     readme = readme.replace("\n".join(readme_lines[start:end]), (
         "本仓库为**简体中文修正版**，对原脚本中**部分专有名词**进行了**修正**，脚本执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：\n"

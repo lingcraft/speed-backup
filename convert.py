@@ -105,7 +105,7 @@ def update_readme():
             start_idx = index
             break
     if start_idx is not None:
-        for index, line in enumerate(readme_lines[start_idx:]):
+        for index, line in enumerate(readme_lines[start_idx + 1:], start=start_idx + 1):
             if "##" in line:
                 insert_idx = index
                 break

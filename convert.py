@@ -99,17 +99,33 @@ def update_readme():
     global readme
     readme = convert(src_repo.get_readme().decoded_content.decode(), "readme")
     readme_lines = readme.splitlines()
-    start, end = 0, 0
+    start_idx, insert_idx = None, None
     for index, line in enumerate(readme_lines):
         if "概述" in line:
-            start = index + 5
-        elif "功能特色" in line:
-            end = index - 1
-    readme = readme.replace("\n".join(readme_lines[start:end]), (
-        "本仓库为**简体中文修正版**，对原脚本中**部分专有名词**进行了**修正**，脚本执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：\n"
-        "> 原版：[backup_script](https://github.com/YAWAsau/backup_script) 。\n\n"
-        "简体中文版使用 Github Action 自动构建，每小时执行1次，所以在原仓库发布新 release 后，不会立马更新简体版。"
-    ))
+            start_idx = index
+            break
+    if start_idx is not None:
+        for index, line in enumerate(readme_lines[start_idx:]):
+            if "##" in line:
+                insert_idx = index
+                break
+        if insert_idx is None:
+            return
+    if insert_idx is not None:
+        content = [
+            "本仓库为**简体中文修正版**，对原脚本中**部分专有名词**进行了**修正**，脚本执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：",
+            "> 原版：[backup_script](https://github.com) 。",
+            "",
+            "简体中文版使用 Github Action 自动构建，每小时执行1次，所以在原仓库发布新 release 后，不会立马更新简体版。",
+            ""
+        ]
+        readme_lines[insert_idx:insert_idx] = content
+    readme = "\n".join(readme_lines)
+    # readme = readme.replace("\n".join(readme_lines[start:end]), (
+    #     "本仓库为**简体中文修正版**，对原脚本中**部分专有名词**进行了**修正**，脚本执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：\n"
+    #     "> 原版：[backup_script](https://github.com/YAWAsau/backup_script) 。\n\n"
+    #     "简体中文版使用 Github Action 自动构建，每小时执行1次，所以在原仓库发布新 release 后，不会立马更新简体版。"
+    # ))
     file = my_repo.get_readme()
     old_readme = file.decoded_content.decode()
     if readme != old_readme:

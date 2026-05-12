@@ -117,7 +117,7 @@ def update_readme():
     if insert_idx is not None:
         content = [
             "本仓库为**简体中文修正版**，对原脚本中**部分专有名词**进行了**修正**，脚本执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：",
-            "> 原版：[backup_script](https://github.com) 。",
+            "> 原版：[backup_script](https://github.com/YAWAsau/backup_script) 。",
             "",
             "简体中文版使用 Github Action 自动构建，每小时执行1次，所以在原仓库发布新 release 后，不会立马更新简体版。",
             ""

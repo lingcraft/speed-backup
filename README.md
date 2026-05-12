@@ -48,6 +48,7 @@
 | ⬛ 黑名单模式 | 黑名单应用可选「完全忽略」或「仅备份安装包」 |
 | ⬜ 白名单支持 | 支持预装应用白名单与系统应用白名单，可指定备份范围 |
 | 📱 进程侦测 | 可设置忽略正在运行中的应用，避免备份数据不一致 |
+| ☁️ 远程备份 | 支持 WebDAV / FTP / SMB / SCP 四种协议，备份完成后自动上传到远程服务器 |
 
 ---
 
@@ -89,6 +90,8 @@ speed-backup.zip
 │   ├── busybox          # 内核工具集
 │   ├── zstd             # zstd 压缩工具
 │   ├── tar              # tar 打包工具
+│   ├── curl             # 远程传输工具 (WebDAV/FTP/SMB)
+│   ├── scp / ssh        # SCP 远程传输
 │   ├── jq               # JSON 处理
 │   ├── bc               # 数学计算
 │   ├── find             # 文档搜索
@@ -133,6 +136,10 @@ speed-backup.zip
 | `system` | 系统应用白名单包名列表 | Google 系列 |
 | `Compression_method` | 压缩算法：`zstd` 或 `tar` | `zstd` |
 | `rgb_a` / `rgb_b` / `rgb_c` | 终端输出主色／辅色（256 色代码） | `226` / `123` / `177` |
+| `remote_type` | 远程备份协议：`webdav` / `ftp` / `smb` / `scp`（留空不激活） | 空 |
+| `remote_url` | 远程服务器地址（见下方格式说明） | 空 |
+| `remote_user` | 远程认证用户名 | 空 |
+| `remote_pass` | 远程认证密码 | 空 |
 
 ---
 
@@ -177,6 +184,31 @@ speed-backup.zip
 若恢复结束后提示应用存在 SSAID，请**立刻重启**后再打开应用。若先打开应用，Android 会生成新的 SSAID，导致应用白屏或需要重新登录。
 
 > 💡 备份文件夹内每个应用子目录都有独立的 `backup.sh` 与 `recover.sh`，可单独备份或恢复单一应用。
+
+---
+
+### 远程备份
+
+备份完成后自动将备份文件上传到远程服务器，支持四种协议：
+
+| 协议 | `remote_url` 格式 |
+|------|-------------------|
+| WebDAV | `http://192.168.1.100:8080/dav/backup/` |
+| FTP | `ftp://192.168.1.100/backup/` |
+| SMB | `smb://192.168.1.100/share/backup/` |
+| SCP | `192.168.1.100:/home/user/backup/` |
+
+**设置方式：** 编辑 `backup_settings.conf`：
+```conf
+remote_type=webdav
+remote_url=http://192.168.1.100:8080/dav/backup/
+remote_user=用户名
+remote_pass=密码
+```
+
+**SCP 注意事项：** SCP 优先使用 `sshpass` 进行密码认证，若不支持则自动尝试 SSH 密钥认证。需确保远程已安装 SSH 服务器。
+
+**上传范围：** 仅上传备份数据（应用文件、WiFi、appList.txt），排除 `tools/`、`start.sh`、`restore_settings.conf` 等脚本文档。
 
 ---
 

@@ -99,7 +99,7 @@ speed-backup.zip
 │   ├── Device_List      # 设备型号数据库
 │   └── tools.sh         # 内核脚本
 │
-├── backup_settings.conf  # 备份行为设置档
+├── backup_settings.conf  # 备份行为配置
 └── start.sh              # 主运行脚本
 ```
 
@@ -107,7 +107,7 @@ speed-backup.zip
 
 ---
 
-## ⚙️ 设置档说明（backup_settings.conf）
+## ⚙️ 配置说明（backup_settings.conf）
 
 | 设置项 | 说明 | 默认值 |
 |--------|------|--------|

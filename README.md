@@ -14,7 +14,7 @@
 
 一款专为 Android 设计的完整应用数据备份／恢复 Shell 脚本,支持 SSAID、运行时权限、OBB 数据包、WiFi 设置等完整备份,让你换机换系统后能无缝还原所有应用状态。
 
-新版增加**完整的远程备份系统**,支持 WebDAV / SMB 上传到 NAS / 云端 / 区网电脑,并可从远程下载备份回手机直接恢复。
+新版增加**完整的远程备份系统**,支持 WebDAV / SMB 上传到 NAS / 云端 / 区网电脑,并可从远程下载备份回手机直接恢复。支持**流式备份模式**,边压缩边传输,数据完全不占用本机空间。
 
 > 作者为台湾人,缺省发布繁体版本。CN 系统环境下脚本将自动翻译为简体中文。
 
@@ -41,7 +41,8 @@
 | 🗜️ 多种压缩算法 | 支持 `tar`(仅打包)与 `zstd`(高压缩率高速度) |
 | ⚡ 高速压缩 | zstd 压缩速率快速,优于钛备份、Swift Backup |
 | 🔒 完整性校验 | 内置 tools SHA-256 校验与压缩包完整性验证 |
-| 🔄 增量备份 | 比对上次备份大小,无变化则跳过,节省时间 |
+| 🔄 增量备份 | 多维度比对(版本/大小/权限/SSAID),无变化则跳过 |
+| ✅ 最终计数核验 | 备份结束后逐档核对存在性,三态显示结果 |
 | 🖥️ 后台运行 | 支持后台运行模式,可完全关闭终端,log 持续刷新 |
 | 💡 伪装亮屏 | 备份/恢复期间可伪装亮屏,避免 IO 因息屏降速 |
 | 🌐 自动更新 | 联网侦测最新版本,支持 CDN 节点(适合中国大陆用户) |
@@ -50,7 +51,8 @@
 | ⬛ 黑名单模式 | 黑名单应用可选「完全忽略」或「仅备份安装包」 |
 | ⬜ 白名单支持 | 支持预装应用白名单与系统应用白名单,可指定备份范围 |
 | 📱 进程侦测 | 可设置忽略正在运行中的应用,避免备份数据不一致 |
-| ☁️ 远程备份上传 | 支持 WebDAV / SMB 两种协议,备份完成自动上传,智能范围与失败重试 |
+| ☁️ 远程备份上传 | 支持 WebDAV / SMB 两种协议,备份完成自动上传,智能增量 |
+| 🚀 流式备份 | 边压缩边传输,数据不落本机,节省本地空间 |
 | 📥 远程下载恢复 | 可从远程直接下载备份回手机,点 start.sh 即可恢复 |
 | 🔍 区网扫描 | 自动扫描区网内所有 SMB 主机,免去手动找 IP |
 | 🧪 连接测试 | 三层测试(TCP / 认证 / 路径),设置不需备份就能验证 |
@@ -72,7 +74,7 @@
 | 单独上传当前备份 | 上传现有本地备份到远程,不重新跑备份流程 |
 | 列出远程备份 | 连接远程、产生 `appList_network.txt` 让你勾选要下载哪些 app |
 | 从远程下载备份 | 依清单下载备份到本地,可直接运行恢复 |
-| 杀死运行中脚本 | 安全终止正在运行的备份脚本 |
+| 杀死运行中脚本 | 安全终止正在运行的备份脚本(整棵进程树) |
 
 ### 恢复模式
 
@@ -102,7 +104,6 @@ speed-backup.zip
 │   ├── curl             # 远程传输工具 (WebDAV)
 │   ├── smbclient        # SMB 远程传输
 │   ├── jq               # JSON 处理
-│   ├── bc               # 数学计算
 │   ├── find             # 文档搜索
 │   ├── keycheck         # 音量键监听
 │   ├── cmd              # 系统指令桥接
@@ -117,7 +118,7 @@ speed-backup.zip
 
 > ⚠️ **重要:** 无论备份或恢复,都必须确保 `tools/` 目录完整存在,否则脚本将无法正常运作。
 
-备份完成后,每个 app 子目录会额外生成 `upload.sh`,可单独上传该 app 到远程,不需要重新备份。
+备份完成后,每个 app 子目录会额外生成 `backup.sh` / `recover.sh` / `upload.sh`,可单独备份、恢复或上传单一应用。
 
 ---
 
@@ -129,11 +130,11 @@ speed-backup.zip
 | `background_execution` | 后台运行:`1` 可关闭终端 / `0` 需保持终端打开 | `0` |
 | `setDisplayPowerMode` | 备份期间伪装亮屏防止 IO 降速 | `0` |
 | `Shell_LANG` | 语言:`0` 繁体中文 / `1` 简体中文(留空自动侦测) | 自动 |
-| `Output_path` | 自定义备份输出路径,支持相对路径(留空使用当前目录) | 空 |
+| `Output_path` | 自定义备份输出路径(留空使用当前目录) | 空 |
 | `list_location` | 自定义 appList.txt 位置(留空使用当前目录) | 空 |
 | `update` | 自动更新:`1` 打开 / `0` 关闭 | `1` |
 | `cdn` | 更新 CDN 节点:`0` 直连 / `1` ghfast.top / `2` workers.dev | `1` |
-| `mount_point` | 屏蔽外部挂载点(OTG、虚拟 SD 等),多个用 `\|` 分隔 | `rannki\|0000-1` |
+| `mount_point` | 屏蔽外部挂载点,多个用 `\|` 分隔 | `rannki\|0000-1` |
 | `user` | 指定用户 ID(留空自动选择) | 空 |
 | `Backup_Mode` | 备份模式:`1` 应用+数据 / `0` 仅安装包 | `1` |
 | `Backup_user_data` | 备份 user 数据:`1` 是 / `0` 否 | `1` |
@@ -148,10 +149,14 @@ speed-backup.zip
 | `Compression_method` | 压缩算法:`zstd` 或 `tar` | `zstd` |
 | `rgb_a` / `rgb_b` / `rgb_c` | 终端输出主色/辅色1/辅色2(256 色代码) | `220` / `51` / `213` |
 | `remote_type` | 远程备份协议:`webdav` / `smb`(留空不激活) | 空 |
-| `remote_url` | 远程服务器地址(见下方格式说明) | 空 |
-| `remote_user` | 远程认证用户名 | 空 |
-| `remote_pass` | 远程认证密码 | 空 |
+| `smb_url` | SMB 服务器地址 | 空 |
+| `smb_remote_user` | SMB 认证用户名 | 空 |
+| `smb_remote_pass` | SMB 认证密码 | 空 |
+| `webdav_url` | WebDAV 服务器地址 | 空 |
+| `webdav_remote_user` | WebDAV 认证用户名 | 空 |
+| `webdav_remote_pass` | WebDAV 认证密码 | 空 |
 | `remote_keep_local` | 上传成功后本地文件:`1` 保留 / `0` 删除 | `0` |
+| `remote_stream` | 流式备份:`1` 打开(边压边传,不占本机) / `0` 关闭 | `0` |
 
 ---
 
@@ -163,7 +168,7 @@ speed-backup.zip
 
 **Step 1 — 生成应用列表**
 
-解压脚本后运行 `start.sh`,选择「**生成应用列表**」。运行完毕后,当前目录会生成 `appList.txt`,内含所有已安装的第三方应用(预装应用缺省屏蔽,可于 `backup_settings.conf` 加入白名单)。
+解压脚本后运行 `start.sh`,选择「**生成应用列表**」。运行完毕后,当前目录会生成 `appList.txt`。
 
 **Step 2 — 编辑应用列表**
 
@@ -177,7 +182,7 @@ speed-backup.zip
 
 **Step 4 — 运行备份**
 
-运行 `start.sh`,选择「**备份应用**」。备份完成后,当前目录会生成 `Backup_<压缩算法>_<用户ID>/` 文件夹,将此文件夹完整保存至安全位置。
+运行 `start.sh`,选择「**备份应用**」。备份完成后生成 `Backup_<压缩算法>_<用户ID>/` 文件夹。
 
 ---
 
@@ -195,76 +200,96 @@ speed-backup.zip
 
 若恢复结束后提示应用存在 SSAID,请**立刻重启**后再打开应用。若先打开应用,Android 会生成新的 SSAID,导致应用白屏或需要重新登录。
 
-> 💡 备份文件夹内每个应用子目录都有独立的 `backup.sh`、`recover.sh`、`upload.sh`,可单独备份、恢复或上传单一应用。
+> 💡 备份文件夹内每个应用子目录都有独立的 `backup.sh`、`recover.sh`、`upload.sh`,可单独操作单一应用。
 
 ---
 
 ## ☁️ 远程备份
 
-备份完成后自动将备份文件上传到远程服务器,支持 WebDAV 与 SMB:
+### 设置方式
 
-| 协议 | `remote_url` 格式 | 适用场景 |
-|------|-------------------|---------|
-| WebDAV | `http://192.168.1.100:8080/dav/backup/` | NAS / Nextcloud / 云端 / rclone serve |
-| SMB | `smb://192.168.1.100/share/` | Windows 共享 / Samba 服务器 / NAS |
-
-**设置方式:** 编辑 `backup_settings.conf`:
+编辑 `backup_settings.conf`,SMB 与 WebDAV 地址分开设置,切换协议免重输:
 
 ```conf
 remote_type=smb
-remote_url=smb://192.168.1.100/Backup
-remote_user=用户名
-remote_pass=密码
+
+smb_url=smb://192.168.1.100/Backup
+smb_remote_user=用户名
+smb_remote_pass=密码
+
+webdav_url=http://192.168.1.100:8080/dav/
+webdav_remote_user=用户名
+webdav_remote_pass=密码
+
 remote_keep_local=0
+remote_stream=0
 ```
 
-**远程目录结构:**
+| 协议 | 地址格式 | 适用场景 |
+|------|----------|---------|
+| SMB | `smb://192.168.1.100/share/` | Windows 共享 / Samba / NAS |
+| WebDAV | `http://192.168.1.100:8080/dav/` | NAS / Nextcloud / rclone serve |
 
-脚本会自动在 `remote_url` 后加 `Backup_<压缩算法>_<用户ID>/` 一层,结构与本地完全镜像。例如 conf 设 `smb://NAS/Backup`,实际上传到:
+### 远程目录结构
+
+脚本在 `remote_url` 下自动创建 `Backup_<压缩算法>_<用户ID>/`,与本地结构完全镜像:
 
 ```
 smb://NAS/Backup/
     Backup_zstd_0/
-        8591游戏交易/...
-        Animeko/...
+        1DM+/
+        LINE/
+        Keep记事/
         wifi/wifi.json
         tools/
         start.sh
         restore_settings.conf
+        appList.txt
+        MT管理器.apk
 ```
 
-不同用户(0、999)会自动分开到 `Backup_zstd_0/`、`Backup_zstd_999/`,互不冲突。
+不同用户(0、999)自动分开到 `Backup_zstd_0/`、`Backup_zstd_999/`,互不冲突。
 
-**特性:**
-- **智能范围上传** — 只上传本次备份的 app,不是整个文件夹
-- **进度与速度** — 每个目录完成印「完成 X% (12.5 MB/s)」与总耗时
-- **失败处理** — 累积失败清单,完整成功才会删本地,部分失败则本地全保留
+### 特性
+
+- **智能增量** — 多维度比对(版本/大小/权限/SSAID),只上传本次有变更的 app
+- **远程预扫** — 单次连接取全部列表 + 批量下载 json,主循环零网络开销
+- **流式备份** — `remote_stream=1` 边压缩边传输,数据完全不占本机空间
+- **最终核验** — 备份结束后逐档核对存在性,缺失文件列出清单
 - **连接预检** — 没网络时 3 秒内判断并禁用上传,不卡死脚本
-- **HTTP code 显示** — WebDAV 失败时显示具体状态(401 / 403 / 404 / 423 等)
+- **失败保护** — 流式上传失败不更新远程 json,确保下轮整体重备
+
+---
+
+### 流式备份模式
+
+`remote_stream=1` 激活流式备份,数据直接 `tar | zstd | 传输`,本机不产生任何备份文件:
+
+```conf
+remote_type=smb
+smb_url=smb://192.168.1.100/Backup
+smb_remote_user=用户名
+smb_remote_pass=密码
+remote_stream=1
+```
+
+> ⚠️ 流式模式为全量上传(无本机校验),建议搭配稳定的区网环境使用。
 
 ---
 
 ### 从远程下载备份
 
-从 NAS / 云端拉回备份,直接运行恢复:
+**Step 1** — 主菜单选「**列出远程备份**」,产生 `appList_network.txt`
 
-**Step 1 — 列出远程备份**
+**Step 2** — 打开 `appList_network.txt`,用 `#` 注解掉不要下载的 app
 
-主菜单选「**列出远程备份**」。脚本会连接远程,检查必要文件(`tools/`、`start.sh`、`restore_settings.conf`),产生 `appList_network.txt` 列出所有可下载的 app。
-
-**Step 2 — 编辑下载清单**
-
-打开 `appList_network.txt`,用 `#` 注解掉不要下载的 app。
-
-**Step 3 — 下载**
-
-主菜单选「**从远程下载备份**」。下载完成后会在当前目录产生 `Backup_<压缩算法>_<用户ID>/`,可直接运行内附的 `start.sh` 恢复。
+**Step 3** — 主菜单选「**从远程下载备份**」,下载完成后直接运行内附 `start.sh` 恢复
 
 ---
 
 ### 连接测试
 
-设置完 `backup_settings.conf` 后,主菜单选「**测试远程连接**」可验证设置:
+设置完 `backup_settings.conf` 后,主菜单选「**测试远程连接**」:
 
 ```
 —————— TCP 连接测试 ——————
@@ -275,28 +300,14 @@ SMB 认证通过, share 可访问
 全部测试通过, 可以开始备份
 ```
 
-每个失败阶段都有对应错误消息(认证失败 / share 不存在 / 路径不存在等)。
-
----
-
-### 上传范围
-
-每次备份自动上传:
-- 本次备份的 app(智能比对 appList.txt)
-- WiFi 配置(若有)
-- 自定义文件夹 Media/(若有设 Custom_path)
-- 固定 3 项:`tools/`、`start.sh`、`restore_settings.conf`(让远程能独立恢复)
-
 ---
 
 ## 🔄 脚本更新方式
 
-支持以下四种更新方式:
-
-1. **ZIP 放置更新**:将下载的 `.zip` 不解压,直接放到脚本任意目录(`tools/` 除外),运行任何脚本即自动更新。
-2. **联网自动更新**:脚本运行时自动连接 GitHub API 检查版本,发现新版本时提示下载(需设置 `update=1`)。
-3. **Download 目录**:将 `.zip` 放置于 `/storage/emulated/0/Download/`,脚本自动侦测并更新。
-4. **QQ 群下载**:从 QQ 群下载的脚本不解压,直接放置后运行即可自动更新。
+1. **ZIP 放置更新**:将下载的 `.zip` 不解压,直接放到脚本任意目录(`tools/` 除外),运行任何脚本即自动更新
+2. **联网自动更新**:脚本运行时自动连接 GitHub API 检查版本(需设置 `update=1`)
+3. **Download 目录**:将 `.zip` 放置于 `/storage/emulated/0/Download/`,脚本自动侦测并更新
+4. **QQ 群下载**:从 QQ 群下载的脚本不解压,直接放置后运行即可自动更新
 
 > 🔒 脚本联网**仅用于检查更新**,无任何数据收集或非法操作。
 
@@ -319,22 +330,22 @@ SMB 认证通过, share 可访问
 <details>
 <summary><b>Q3:为什么部分应用备份很久?</b></summary>
 
-脚本会一同备份应用的 OBB 数据包,例如原神数据包超过 9GB,备份与恢复时间自然较长。可在 `backup_settings.conf` 设置 `Backup_obb_data=0` 跳过 OBB 备份。
+脚本会一同备份应用的 OBB 数据包,例如原神数据包超过 9GB。可在 `backup_settings.conf` 设置 `Backup_obb_data=0` 跳过 OBB 备份。
 </details>
 
 <details>
 <summary><b>Q4:脚本每次都是全量备份吗?</b></summary>
 
-否。脚本会比对上次备份的文件大小,若无差异则跳过该应用,节省时间与空间。
+否。脚本多维度比对上次备份(版本号/数据大小/权限/SSAID),无差异则跳过,节省时间与空间。
 </details>
 
 <details>
 <summary><b>Q5:为什么脚本内包含 .dex 文件?</b></summary>
 
-`classes.dex` 用于实现 Shell 脚本难以达成的功能,包含:
+`classes.dex` 用于实现 Shell 脚本难以达成的功能:
 
 - SSAID 备份与恢复
-- 运行时权限(Runtime Permission)与 ops 权限备份恢复
+- 运行时权限(Runtime Permission)与 ops 权限批量备份恢复
 - GitHub API 更新版本检查与下载
 - 应用名称与包名查找
 - 繁体中文 ↔ 简体中文自动翻译
@@ -346,7 +357,7 @@ SMB 认证通过, share 可访问
 <details>
 <summary><b>Q6:息屏后备份速度变慢?</b></summary>
 
-这是 Android 内核的 IO 节能机制导致的。建议在 `backup_settings.conf` 设置 `setDisplayPowerMode=1` 打开伪装亮屏,或在备份期间保持屏幕常亮。
+这是 Android 内核的 IO 节能机制。建议在 `backup_settings.conf` 设置 `setDisplayPowerMode=1` 打开伪装亮屏,或备份期间保持屏幕常亮。
 </details>
 
 <details>
@@ -355,23 +366,23 @@ SMB 认证通过, share 可访问
 进入备份文件夹内对应的应用子目录,直接运行:
 - `backup.sh` — 单独备份该 app
 - `recover.sh` — 单独恢复该 app
-- `upload.sh` — 单独上传该 app 到远程(新)
+- `upload.sh` — 单独上传该 app 到远程
 </details>
 
 <details>
 <summary><b>Q8:WebDAV 上传显示 HTTP 423 Locked?</b></summary>
 
-某些云端网盘(例如 123 网盘)的 WebDAV 对大档有单档大小限制,失败会把路径标记为 locked。建议改用以下方案:
-- 自家 NAS / Windows SMB(无限制)
-- rclone serve webdav(无限制)
-- 群晖 / Nextcloud(无限制)
+某些云端网盘的 WebDAV 对大档有大小限制。建议改用:
+- 自家 NAS / Windows SMB
+- rclone serve webdav
+- 群晖 / Nextcloud
 </details>
 
 <details>
 <summary><b>Q9:WebDAV 上传显示 HTTP 404?</b></summary>
 
-脚本已强制 curl 使用 HTTP/1.1(`--http1.1`),避开部分 openresty / nginx 对 HTTP/2 PUT 的兼容问题。如果仍 404,请检查:
-- `remote_url` 路径是否含正确的 webdav 端点(例如 `/dav/` 或 `/remote.php/webdav/`)
+请检查:
+- `webdav_url` 路径是否含正确的 webdav 端点(例如 `/dav/` 或 `/remote.php/webdav/`)
 - 帐号是否有写入权限
 </details>
 
@@ -386,7 +397,18 @@ SMB 认证通过, share 可访问
 <details>
 <summary><b>Q11:没网络会影响备份吗?</b></summary>
 
-不会。脚本启动时会做 TCP 预检(3 秒内判断),没网络时自动禁用远程上传但**完整保留本地备份**,流程继续跑完。
+不会。脚本启动时做 TCP 预检(3 秒内判断),没网络时自动禁用远程上传但**完整保留本地备份**,流程继续跑完。
+</details>
+
+<details>
+<summary><b>Q12:流式备份和一般备份有什么差别?</b></summary>
+
+| | 一般备份 | 流式备份 |
+|---|---|---|
+| 本机空间占用 | 先压缩到本机再上传 | 不占用(直接传输) |
+| 增量比对 | ✅ 支持 | ✅ 支持 |
+| 本机完整性校验 | ✅ 支持 | ❌ 不支持(信任传输) |
+| 适合场景 | 本机空间充足 | 本机空间有限 |
 </details>
 
 ---

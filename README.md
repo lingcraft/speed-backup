@@ -415,7 +415,7 @@ SMB 认证通过, share 可访问
 
 ## 📬 问题反馈
 
-遇到问题请携带截屏与 log 档,透过以下方式反馈:
+遇到问题请携带截屏与 log 档,通过以下方式反馈:
 
 - 🐛 [GitHub Issues](https://github.com/YAWAsau/backup_script/issues)
 - 💬 [Telegram 频道](https://t.me/yawasau_script)

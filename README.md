@@ -16,7 +16,7 @@
 
 新版增加**完整的远程备份系统**,支持 WebDAV / SMB 上传到 NAS / 云端 / 区网电脑,并可从远程下载备份回手机直接恢复。支持**流式备份模式**,边压缩边传输,数据完全不占用本机空间。
 
-> 作者为台湾人,缺省发布繁体版本。CN 系统环境下脚本将自动翻译为简体中文。
+> 作者为台湾人,预设发布繁体版本。CN 系统环境下脚本将自动翻译为简体中文。
 
 **系统需求:** `Android 8+` · `arm64 架构` · `Root 权限(Magisk / KernelSU)`
 
@@ -415,7 +415,7 @@ SMB 认证通过, share 可访问
 
 ## 📬 问题反馈
 
-遇到问题请携带截屏与 log 档,通过以下方式反馈:
+遇到问题请携带截屏与 log 档,透过以下方式反馈:
 
 - 🐛 [GitHub Issues](https://github.com/YAWAsau/backup_script/issues)
 - 💬 [Telegram 频道](https://t.me/yawasau_script)

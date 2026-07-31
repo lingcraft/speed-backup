@@ -1,4 +1,7 @@
-import github, os, shutil, opencc
+from github import Github, Auth
+from opencc import OpenCC
+from os import environ, path, remove, walk
+from shutil import make_archive, unpack_archive
 
 auth = Auth.Token(environ["GITHUB_TOKEN"])
 git = Github(auth=auth)

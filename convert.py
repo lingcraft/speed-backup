@@ -1,11 +1,11 @@
 import github, os, shutil, opencc
 
-auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
-git = github.Github(auth=auth)
+auth = Auth.Token(environ["GITHUB_TOKEN"])
+git = Github(auth=auth)
 proj_name = "speed-backup"
 my_repo = git.get_repo(f"lingcraft/{proj_name}")
 src_repo = git.get_repo("YAWAsau/backup_script")
-converter = opencc.OpenCC("tw2sp")
+converter = OpenCC("tw2sp")
 trans_dict = {
     "script": {  # 脚本修正
         "shell_language=\"zh-TW\"": "shell_language=\"zh-CN\"",
@@ -55,8 +55,8 @@ def get_latest_release():
     if len(release.tag_name):
         asset = release.get_assets()[0]
         asset.download_asset(asset.name, 8192)
-        shutil.unpack_archive(asset.name, proj_name)
-        if os.path.isdir(proj_name):
+        unpack_archive(asset.name, proj_name)
+        if path.isdir(proj_name):
             version, description = release.tag_name, convert(release.body)
             return True
     return False
@@ -70,18 +70,18 @@ def convert(content, dict_type="script"):
 
 
 def simplify():
-    for path, dir_names, file_names in os.walk(proj_name):
+    for file_path, _, file_names in walk(proj_name):
         for file_name in (file_name for file_name in file_names if file_name.endswith(suffixes)):
-            file = os.path.join(path, file_name)
+            file = path.join(file_path, file_name)
             with open(file, "r", encoding="utf-8") as f:
                 content = convert(f.read())
-            os.remove(file)
+            remove(file)
             with open(convert(file), "w", encoding="utf-8", newline="\n") as f:
                 f.write(content)
 
 
 def upload():
-    shutil.make_archive(proj_name, "zip", proj_name)
+    make_archive(proj_name, "zip", proj_name)
     release = next((release for release in my_repo.get_releases() if release.tag_name == version), None)
     if release is None:
         release = my_repo.create_git_release(version, version, description, False, False, False)
@@ -90,7 +90,7 @@ def upload():
         if assets.totalCount > 0:
             asset = assets[0]
             asset.download_asset(asset.name, 8192)
-            if os.path.getsize(f"{proj_name}.zip") != os.path.getsize(asset.name):
+            if path.getsize(f"{proj_name}.zip") != path.getsize(asset.name):
                 asset.delete_asset()
             else:
                 return

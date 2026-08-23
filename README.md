@@ -19,9 +19,11 @@ Backup_script 是一款专为 Android 设计的完整应用数据备份／恢复
 
 新版支持流式备份：数据可直接 `tar | zstd | 传输`，不需要先落地成本机压缩包，适合本机空间不足的设备。对于没有变化的应用，脚本会通过版本、数据大小、AppState、SSAID 与远程文件状态进行 fast-skip，避免重复压缩与重复上传。
 
+新版 AppState metadata 采用 `app_details_bundle.tar.zst` bundle-only 远程同步流程：功能 7 会先汇总本地 metadata 再上传，功能 10 会先下载 bundle 并同级解包后再恢复。
+
 > 作者为台湾人，预设发布繁体版本。简体中文环境下脚本可自动切换语言。
 
-**系统需求：** `Android 8+` · `arm64 架构` · `Root 权限(Magisk / KernelSU)`
+**系统需求：** `Android 9+` · `arm64 架构` · `Root 权限(Magisk / KernelSU)`
 
 本仓库为**简体中文修正版**，对原脚本中**部分专有名词**进行了**修正**，脚本执行逻辑无任何修改，具体使用哪个版本请自行决定，**原版**可前往这里下载：
 > 原版：[backup_script](https://github.com/YAWAsau/backup_script) 。
@@ -39,7 +41,8 @@ Backup_script 是一款专为 Android 设计的完整应用数据备份／恢复
 | Play 商店来源还原 | 支持恢复 installer / install source，使应用在系统中正确显示来源 |
 | SSAID 备份与恢复 | 支持备份与恢复 Android SSAID，适合 LINE 等依赖设备识别码的应用 |
 | 权限与 AppOps | 支持运行时权限、AppOps、特殊访问、电池策略等状态备份与恢复 |
-| 旧 JSON 兼容 | 旧版 `app_details.json` 会自动转换为新版 AppState restore record，不需手动转档 |
+| AppState metadata bundle | 新版 metadata 统一汇总为根层 `app_details_bundle.tar.zst`，远程同步与下载以 bundle 为准 |
+| 本地旧 JSON 恢复兼容 | 本地既有旧备份的 `app_details.json` 可在恢复时转换为新版 AppState restore record |
 | Split APK | 支持多 split APK 备份与恢复 |
 | OBB 数据包 | 可选备份外部 OBB 数据，如大型游戏数据报 |
 | Wi-Fi 备份 | 支持 Wi-Fi 设置备份与恢复 |
@@ -49,8 +52,9 @@ Backup_script 是一款专为 Android 设计的完整应用数据备份／恢复
 | 全量 fast-skip | 本地 / WebDAV / SMB 全部无变化时可整批折叠跳过，不进逐 App 主流程 |
 | 远程备份 | 支持 WebDAV / SMB 备份、下载、恢复、列表与健康检查 |
 | 流式备份 | 边压缩边传输，数据不落本机，节省本地空间 |
-| 远程预扫 | 远程备份前批量取得远程列表与 JSON，降低主循环网络开销 |
-| 远程 JSON 健康检查 | 远程 `app_details.json` 缺失或损坏会列出清单，不静默忽略 |
+| 事件等待与进程稳定检查 | 使用 `eventwait` / `procwait` 辅助远程串流等待、备份前稳定等待与恢复守护收尾 |
+| 远程预扫 | 远程备份前批量取得远程列表与 metadata 状态，降低主循环网络开销 |
+| 远程 metadata 健康检查 | 远程 `app_details_bundle.tar.zst` 缺失、损坏或内容不完整会明确提示，不静默忽略 |
 | SMB 扫描 | 自动扫描区网 SMB 主机与 share，免手动找 IP |
 | WebDAV 兼容 | 支持逐层建目录、PUT/MOVE/STAT/GET 校验、404 非致命判断等 WebDAV 兼容处理 |
 | 日志与 debug 包 | 自动生成 speed_debug 诊断包，legacy `log/log_yyyy-mm-dd_hh-mm.txt` 会同步主日志摘要 |
@@ -76,9 +80,9 @@ Backup_script 是一款专为 Android 设计的完整应用数据备份／恢复
 | 备份自定义文件夹 | 备份 `backup_settings.conf` 中设置的自定义目录 |
 | 备份 Wi-Fi | 备份目前设备的 Wi-Fi 设置 |
 | 测试远程连接 | 验证 WebDAV / SMB 设置与写入能力 |
-| 单独上传当前备份 | 将现有本地备份同步到远程，不重新运行备份 |
+| 单独上传当前备份 | 将现有本地备份先汇总 `app_details_bundle.tar.zst`，再同步到远程，不重新运行备份 |
 | 列出远程备份 | 连接远程并产生 `appList_network.txt` |
-| 从远程下载备份 | 依清单下载远程备份到本地，可直接恢复 |
+| 从远程下载备份 | 依清单下载远程备份；必须先取得 `app_details_bundle.tar.zst`，下载后自动解包 metadata |
 | 杀死运行中脚本 | 安全终止正在运行的备份脚本进程树 |
 
 ### 恢复模式
@@ -115,9 +119,12 @@ speed-backup.zip
 │   ├── unixsock       # AF_UNIX socket 辅助工具
 │   ├── filewatch      # 文件状态辅助工具
 │   ├── procwait       # 进程等待辅助工具
-│   ├── classes.dex    # Java / Dex 功能扩展
+│   ├── eventwait      # 远程串流事件等待辅助工具
+│   ├── speedscan      # 文件树扫描与 restore facts 辅助工具
+│   ├── netwatch       # 远程流程网络变更侦测辅助工具
+│   ├── cgfreezer      # cgroup freeze / thaw 辅助工具
+│   ├── classes.dex    # Java / Dex 功能扩展，内置设备型号数据库
 │   ├── soc.json       # 处理器数据库
-│   ├── Device_List    # 设备型号数据库
 │   └── tools.sh       # 内核脚本
 │
 ├── backup_settings.conf # 备份行为配置
@@ -127,7 +134,7 @@ speed-backup.zip
 
 > **重要：** 无论备份或恢复，都必须确保 `tools/` 目录完整存在，否则脚本可能无法正常运作。
 
-备份完成后，每个 App 子目录会生成 `backup.sh` / `recover.sh` / `upload.sh`，可单独备份、恢复或上传单一应用。
+备份完成后，每个 App 子目录会生成 `backup.sh` / `recover.sh` / `upload.sh`，可单独备份、恢复或上传单一应用。远程恢复所需的 AppState metadata 以备份根目录的 `app_details_bundle.tar.zst` 为主；若手动操作单一 App 上传，建议再使用「单独上传当前备份」同步根层 metadata bundle。
 
 ---
 
@@ -252,11 +259,11 @@ remote_keep_local=1
 
 ```text
 Backup_zstd_0/
+├── app_details_bundle.tar.zst  # AppState metadata bundle，内含 manifest.tsv 与各 App 的 app_details.json
 ├── LINE/
 │   ├── apk.tar.zst
 │   ├── user.tar.zst
 │   ├── user_de.tar.zst
-│   ├── app_details.json
 │   ├── backup.sh
 │   ├── recover.sh
 │   └── upload.sh
@@ -270,14 +277,54 @@ Backup_zstd_0/
 
 不同 Android 用户会分开到不同目录，例如 `Backup_zstd_0/`、`Backup_zstd_999/`。
 
+新版远程 metadata 采用 bundle-only 流程。远程根层的 `app_details_bundle.tar.zst` 是恢复与远程下载所需的 metadata 主档；bundle 内部保留 App 目录结构，下载后会在本地备份根目录同级解包成 `<App目录>/app_details.json`。
+
 ### 远程备份特性
 
 - **流式备份**：`remote_stream=1` 时，数据直接压缩并传输到远程，本地不落压缩包。
 - **远程 fast-skip**：若远程数据、版本、AppState 与文件状态都未变化，会整批跳过。
-- **远程 JSON 健康检查**：缺失、损坏或格式不合法的 `app_details.json` 会列出清单。
-- **失败保护**：流式上传失败时不更新远程 JSON，避免下轮误判已备份完成。
+- **远程 metadata bundle 健康检查**：缺失、损坏或内容不完整的 `app_details_bundle.tar.zst` 会明确提示。
+- **失败保护**：流式上传失败时不更新远程 metadata 状态，避免下轮误判已备份完成。
 - **WebDAV 目录创建**：会逐层创建远程目录并 verify，降低不同 WebDAV server 的兼容问题。
 - **SMB 写入预检**：正式备份前会测试远程目录创建与写入能力。
+
+---
+
+## AppState metadata bundle
+
+新版 AppState metadata 以备份根目录的 `app_details_bundle.tar.zst` 为主，不再把远程逐 App `app_details.json` 作为功能 7 / 功能 10 的 metadata 同步主路径。
+
+### 产生与上传
+
+完整备份流程会生成根层 `app_details_bundle.tar.zst`。使用功能 7「单独上传当前备份」时，脚本会先扫描本地备份目录内的：
+
+```text
+<App目录>/app_details.json
+```
+
+并重新汇总成：
+
+```text
+app_details_bundle.tar.zst
+```
+
+然后再上传到远程根层。功能 7 的上传清单会过滤逐 App `app_details.json`，metadata 只同步 bundle。
+
+### 下载与解包
+
+功能 10「从远程下载备份」会要求远程根层存在：
+
+```text
+app_details_bundle.tar.zst
+```
+
+下载成功后，脚本会在本地备份根目录同级解包，恢复成：
+
+```text
+<App目录>/app_details.json
+```
+
+如果远程缺少 `app_details_bundle.tar.zst`，功能 10 会中止下载；不再 fallback 到远程逐 App `app_details.json`。
 
 ---
 
@@ -316,13 +363,15 @@ tar → zstd → WebDAV / SMB
 
 **Step 3 — 从远程下载备份**
 
-主菜单选「从远程下载备份」。下载完成后，直接运行下载文件夹中的 `start.sh` 进行恢复。
+主菜单选「从远程下载备份」。脚本会先下载远程根层 `app_details_bundle.tar.zst`，并在本地备份根目录同级解包出各 App 的 `app_details.json`。若远程缺少 `app_details_bundle.tar.zst`，下载会中止，避免产生 metadata 不完整的本地备份。
+
+下载完成后，直接运行下载文件夹中的 `start.sh` 进行恢复。
 
 ---
 
-## 旧版 JSON 兼容
+## 本地旧版 JSON 恢复兼容
 
-新版恢复流程支持旧版 `app_details.json`。若旧 JSON 没有新版 `app_state` 字段，但仍保留：
+本地既有旧备份仍可在恢复时读取逐 App `app_details.json`。若旧 JSON 没有新版 `app_state` 字段，但仍保留：
 
 ```text
 permissions
@@ -334,7 +383,7 @@ PackageName
 user / user_de / data Size
 ```
 
-脚本会在恢复时自动转换为新版 AppState restore record，等效于：
+脚本会在恢复时尝试转换为新版 AppState restore record，等效于：
 
 ```text
 sourceFormat=legacy-app-details-migrated
@@ -342,7 +391,9 @@ recordType=snapshot
 schemaVersion=2
 ```
 
-也就是旧备份不需要手动转档。旧 JSON 已有的 SSAID、权限、AppOps、电池策略与安装来源会尽量恢复；旧 JSON 本来没有的新字段则无法凭空补出。
+旧 JSON 已有的 SSAID、权限、AppOps、电池策略与安装来源会尽量恢复；旧 JSON 本来没有的新字段则无法凭空补出。
+
+> 注意：此兼容仅针对本地既有旧备份恢复。新版功能 7 / 功能 10 的远程同步流程采 `app_details_bundle.tar.zst` bundle-only，不再使用远程逐 App `app_details.json` 作为 metadata 主路径。
 
 ---
 
@@ -354,11 +405,14 @@ schemaVersion=2
 - SSAID 备份与恢复辅助
 - 运行时权限、AppOps、特殊访问、电池策略状态处理
 - 安装来源、installer、Play 来源恢复辅助
-- App 名称、包名、版本、split 信息查找
-- WebDAV rel API、AF_UNIX daemon 与传输辅助
+- App 名称、包名、版本、split 信息与安装后 facts 批量查找
+- WebDAV rel API、strict rel path gate、AF_UNIX daemon 与传输辅助
 - SMB 主机与 share 扫描辅助
 - 通知批量更新
 - 权限 / AppOps / 特殊访问中文语意输出
+- 预设 HOME / IME / 电话 / SMS / 浏览器 / 助理等 role facts 查找
+- storage / media path facts 查找
+- 内置设备型号数据库，release 内不再需要外置 `tools/Device_List`
 
 启动自检由 `dex_check.sh` 运行，只检查目前 Dex 版本实际具备的能力与 `tools.sh` 当前使用的 Dex route。
 
@@ -407,6 +461,8 @@ log/log_2026-07-25_21-40.txt
 - `verify_app_state_output.log`：AppState verify 输出
 - `stream_upload.log` / `stream_download.log`：流式上传 / 下载日志
 - `extract.log`：恢复解压日志
+- `restore_app_phase_timing.tsv`：恢复阶段耗时统计
+- `restore_apk_timing.tsv`：APK 安装阶段耗时统计
 
 ---
 
@@ -458,6 +514,8 @@ log/log_2026-07-25_21-40.txt
 - `backup.sh`：单独备份该 App
 - `recover.sh`：单独恢复该 App
 - `upload.sh`：单独上传该 App 到远程
+
+注意：新版远程恢复 metadata 以根层 `app_details_bundle.tar.zst` 为准。若手动运行单 App `upload.sh`，建议再回主菜单运行「单独上传当前备份」，让脚本重新汇总并上传 metadata bundle。
 </details>
 
 <details>
@@ -469,7 +527,7 @@ log/log_2026-07-25_21-40.txt
 <details>
 <summary><b>Q9：WebDAV 上传或列表显示 HTTP 404？</b></summary>
 
-请检查 `webdav_url` 是否指向正确 WebDAV 端点，例如 `/dav/`、`/remote.php/webdav/` 或 rclone serve 的根路径。若是 app_details 不存在的 404，脚本会按「远程尚无备份」处理，不一定是错误。
+请检查 `webdav_url` 是否指向正确 WebDAV 端点，例如 `/dav/`、`/remote.php/webdav/` 或 rclone serve 的根路径。若是 `app_details_bundle.tar.zst` 不存在，功能 10 会中止下载；备份或上传流程请先生成并同步 metadata bundle。
 </details>
 
 <details>
@@ -502,7 +560,13 @@ log/log_2026-07-25_21-40.txt
 </details>
 
 <details>
-<summary><b>Q13：为什么 log 里有些 stderr 是 0KB？</b></summary>
+<summary><b>Q13：功能 10 提示缺少 app_details_bundle.tar.zst？</b></summary>
+
+新版远程下载需要根层 `app_details_bundle.tar.zst`。请先使用新版完整备份，或在本地备份文件夹使用「单独上传当前备份」，让脚本汇总本地各 App 的 `app_details.json` 并上传 metadata bundle。
+</details>
+
+<details>
+<summary><b>Q14：为什么 log 里有些 stderr 是 0KB？</b></summary>
 
 `stderr.log`、`root_daemon_stderr.log`、`webdav_daemon_stderr.log` 为 0KB 通常是正常现象，代表没有错误输出。主流程请看 `main.log` 或 `log/log_yyyy-mm-dd_hh-mm.txt`。
 </details>

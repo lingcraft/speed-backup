@@ -130,7 +130,6 @@ SpeedBackup/
 │   ├── zstd                # 压缩工具
 │   ├── tar                 # 打包工具
 │   ├── smbclient           # SMB 传输
-│   ├── jq                  # JSON 处理
 │   ├── find                # 文件搜索
 │   ├── keycheck            # 音量键输入
 │   ├── cmd                 # 系统指令桥接

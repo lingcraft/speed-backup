@@ -4,7 +4,6 @@ from hashlib import sha256
 from os import environ, path, remove, walk
 from re import sub
 from shutil import make_archive, unpack_archive
-import env
 
 auth = Auth.Token(environ["GITHUB_TOKEN"])
 git = Github(auth=auth)

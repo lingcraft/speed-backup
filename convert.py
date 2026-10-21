@@ -1,7 +1,10 @@
 from github import Github, Auth
 from opencc import OpenCC
+from hashlib import sha256
 from os import environ, path, remove, walk
+from re import sub
 from shutil import make_archive, unpack_archive
+import env
 
 auth = Auth.Token(environ["GITHUB_TOKEN"])
 git = Github(auth=auth)
@@ -81,6 +84,23 @@ def simplify():
             remove(file)
             with open(convert(file), "w", encoding="utf-8", newline="\n") as f:
                 f.write(content)
+    update_hash()
+
+
+def update_hash():
+    file = path.join(proj_name, "tools", "tools.sh")
+    with open(file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    def refresh(match):
+        name = match.group(1)
+        tool = path.join(proj_name, "tools", name)
+        if path.isfile(tool):
+            return f"{name} {sha256(open(tool, "rb").read()).hexdigest()}"
+        return match.group(0)
+
+    with open(file, "w", encoding="utf-8", newline="\n") as f:
+        f.write(sub(r"(?m)^(\S+) [0-9a-f]{64}$", refresh, content))
 
 
 def upload():

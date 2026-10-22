@@ -1,4 +1,5 @@
 .idea
+.workbuddy
 __pycache__
 env.py
 speed-backup*

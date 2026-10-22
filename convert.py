@@ -1,10 +1,9 @@
 from github import Github, Auth, UnknownObjectException
 from opencc import OpenCC
-from hashlib import sha256, sha1
+from hashlib import sha256
 from os import environ, path, remove, walk
-from re import compile, sub
+from re import sub
 from shutil import make_archive, rmtree, unpack_archive
-from zlib import adler32
 
 auth = Auth.Token(environ["GITHUB_TOKEN"])
 git = Github(auth=auth)
@@ -30,7 +29,25 @@ trans_dict = {
         "提升": "升级",
         "画面回报": "并反馈给",
         "杀死": "关闭",
-        "结束自身": "关闭自己"
+        "结束自身": "关闭自己",
+        "echoRgb \"脚本路径:$MODDIR": (
+            "if [[ $SCRIPT_LANG = CN ]]; then\n"
+            "    _l10n=\"$(printf '%s' \"$Device_name\" | _dex_exec_unfiltered com.xayah.dex.CCUtil t2s)\"\n"
+            "    [[ -n $_l10n ]] && Device_name=\"$_l10n\"\n"
+            "    _l10n=\"$(printf '%s' \"$DEVICE_NAME\" | _dex_exec_unfiltered com.xayah.dex.CCUtil t2s)\"\n"
+            "    [[ -n $_l10n ]] && DEVICE_NAME=\"$_l10n\"\n"
+            "    unset _l10n\n"
+            "fi\n"
+            "echoRgb \"脚本路径:$MODDIR"
+        ),
+        "IFS= read -r _GOOGLE_WELCOME_TEXT < \"$_out\" || true": (
+            "IFS= read -r _GOOGLE_WELCOME_TEXT < \"$_out\" || true\n"
+            "            if [[ $SCRIPT_LANG = CN && -n $_GOOGLE_WELCOME_TEXT ]]; then\n"
+            "                _l10n=\"$(printf '%s' \"$_GOOGLE_WELCOME_TEXT\" | ts)\"\n"
+            "                [[ -n $_l10n ]] && _GOOGLE_WELCOME_TEXT=\"$_l10n\"\n"
+            "                unset _l10n\n"
+            "            fi"
+        ),
     },
     "readme": {  # 自述修正
         "backup_script.zip": f"{proj_name}.zip",
@@ -46,9 +63,6 @@ trans_dict = {
     }
 }
 suffixes = (".sh", ".conf", "_List")
-text_segment = compile(rb"[\x20-\x7e\xc2-\xf4][\x20-\x7e\x80-\xbf\xc2-\xf4]*")
-cjk_pattern = compile(r"[\u4e00-\u9fff]")
-ui_binaries = ("classes.dex", "speednative")  # 界面文案所在的二进制（欢迎语/机型库/处理器标签）
 version, description, readme = "", "", ""
 
 
@@ -80,51 +94,15 @@ def convert(content, dict_type="script"):
     return content
 
 
-def convert_bytes(data):
-    def replace(match):
-        raw = match.group()
-        try:
-            text = raw.decode("utf-8")
-        except UnicodeDecodeError:
-            return raw
-        if not cjk_pattern.search(text):
-            return raw
-        converted = convert(text).encode("utf-8")
-        if len(converted) == len(raw):
-            return converted
-        buffer = bytearray()  # 短语转换变长时逐字兜底，保证字节数不变、二进制结构不偏移
-        for char in text:
-            char_bytes = converter.convert(char).encode("utf-8")
-            buffer += char_bytes if len(char_bytes) == len(char.encode("utf-8")) else char.encode("utf-8")
-        return bytes(buffer)
-    return text_segment.sub(replace, data)
-
-
-def fix_dex(data):
-    data[12:32] = sha1(bytes(data[32:])).digest()  # SHA-1 签名：偏移 32 至文件尾
-    data[8:12] = adler32(bytes(data[12:])).to_bytes(4, "little")  # Adler-32 校验和：偏移 12 至文件尾
-    return data
-
-
 def simplify():
     for file_path, _, file_names in walk(proj_name):
-        for file_name in file_names:
+        for file_name in (file_name for file_name in file_names if file_name.endswith(suffixes)):
             file = path.join(file_path, file_name)
-            if file_name.endswith(suffixes):
-                with open(file, "r", encoding="utf-8") as f:
-                    content = convert(f.read())
-                remove(file)
-                with open(convert(file), "w", encoding="utf-8", newline="\n") as f:
-                    f.write(content)
-            elif file_name in ui_binaries:
-                with open(file, "rb") as f:
-                    data = convert_bytes(f.read())
-                if data[:4] == b"dex\n":
-                    data = fix_dex(bytearray(data))
-                elif data[:4] != b"\x7fELF":
-                    continue
-                with open(file, "wb") as f:
-                    f.write(data)
+            with open(file, "r", encoding="utf-8") as f:
+                content = convert(f.read())
+            remove(file)
+            with open(convert(file), "w", encoding="utf-8", newline="\n") as f:
+                f.write(content)
     update_hash()
 
 

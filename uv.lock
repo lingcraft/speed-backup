@@ -290,8 +290,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "opencc", specifier = "==1.4.0" },
-    { name = "pygithub", specifier = "==2.9.1" },
+    { name = "opencc", specifier = "~=1.4.0" },
+    { name = "pygithub", specifier = "~=2.9.1" },
 ]
 
 [[package]]

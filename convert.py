@@ -1,9 +1,9 @@
-from github import Github, Auth
+from github import Github, Auth, UnknownObjectException
 from opencc import OpenCC
 from hashlib import sha256, sha1
 from os import environ, path, remove, walk
 from re import compile, sub
-from shutil import make_archive, unpack_archive
+from shutil import make_archive, rmtree, unpack_archive
 from zlib import adler32
 
 auth = Auth.Token(environ["GITHUB_TOKEN"])
@@ -66,6 +66,7 @@ def get_latest_release():
         asset = release.get_assets()[0]
         asset.download_asset(asset.name, 8192)
         unpack_archive(asset.name, proj_name)
+        remove(asset.name)
         if path.isdir(proj_name):
             version, description = release.tag_name, convert(release.body)
             return True
@@ -99,7 +100,7 @@ def convert_bytes(data):
     return text_segment.sub(replace, data)
 
 
-def fix_dex_header(data):
+def fix_dex(data):
     data[12:32] = sha1(bytes(data[32:])).digest()  # SHA-1 签名：偏移 32 至文件尾
     data[8:12] = adler32(bytes(data[12:])).to_bytes(4, "little")  # Adler-32 校验和：偏移 12 至文件尾
     return data
@@ -119,7 +120,7 @@ def simplify():
                 with open(file, "rb") as f:
                     data = convert_bytes(f.read())
                 if data[:4] == b"dex\n":
-                    data = fix_dex_header(bytearray(data))
+                    data = fix_dex(bytearray(data))
                 elif data[:4] != b"\x7fELF":
                     continue
                 with open(file, "wb") as f:
@@ -145,19 +146,18 @@ def update_hash():
 
 def upload():
     make_archive(proj_name, "zip", proj_name)
-    release = next((release for release in my_repo.get_releases() if release.tag_name == version), None)
-    if release is None:
+    rmtree(proj_name, True)
+    try:
+        release = my_repo.get_release(version)
+    except UnknownObjectException:
         release = my_repo.create_git_release(version, version, description, False, False, False)
-    else:
-        assets = release.get_assets()
-        if assets.totalCount > 0:
-            asset = assets[0]
-            asset.download_asset(asset.name, 8192)
-            if path.getsize(f"{proj_name}.zip") != path.getsize(asset.name):
-                asset.delete_asset()
-            else:
-                return
-    release.upload_asset(f"{proj_name}.zip", f"{proj_name}{version}.zip", "application/zip", f"{proj_name}{version}.zip")
+    assets = release.get_assets()
+    name = f"{proj_name}{version}.zip"
+    if assets.totalCount and assets[0].size == path.getsize(f"{proj_name}.zip"):
+        return
+    for asset in assets:
+        asset.delete_asset()
+    release.upload_asset(f"{proj_name}.zip", name, "application/zip", name)
 
 
 def update_readme():

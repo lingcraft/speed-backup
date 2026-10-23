@@ -9,11 +9,9 @@
  <a href="https://t.me/yawasau_script"><img src="https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram&style=flat-square" /></a>
 </p>
 
----
-
 ## 概述
 
-Backup_script 是一款专为 Android 设计的应用数据备份／恢复 Shell 脚本，支持应用数据、Split APK、SSAID、运行时权限、AppOps、特殊访问、电池策略、安装来源、OBB 数据包、Wi-Fi 设置与自定义文件夹备份。适合换机、刷机、重装系统后快速还原应用状态。
+Backup_script 是一款专为 Android 设计的应用数据备份／恢复 Shell 脚本，支持应用数据、Split APK、SSAID、运行时权限、AppOps、特殊访问、电池策略、安装来源诊断、OBB 数据包、Wi-Fi 设置与自定义文件夹备份。适合换机、刷机、重装系统后快速还原应用状态。
 
 脚本提供本地备份与远程备份两种模式。远程备份支持 WebDAV / SMB，可上传到 NAS、区网电脑、rclone serve webdav、Nextcloud 等服务，可先下载备份回手机再恢复，也可直接从远程串流解压恢复。
 
@@ -38,7 +36,8 @@ Backup_script 是一款专为 Android 设计的应用数据备份／恢复 Shell
 |------|------|
 | 应用数据备份 | 备份应用数据、APK、Split APK、user / user_de / data / OBB 等数据 |
 | 应用恢复 | 支持批量与单 App 恢复，核对文件与 AppState；受系统限制的项目会分开显示 |
-| Play 商店来源还原 | 支持恢复 installer / install source，依备份记录与支持的安装流程设置来源 |
+| Play 安装者身分 | 目标用户的 Play 商店可用且通过检查时优先使用其身分安装；否则使用普通安装，不保证 Play 授权或认证 |
+| 应用列表 | Dex 提供新鲜完整已安装集合，Rust 一次合并、清理、排序与验证，保留注解及既有已安装系统 App |
 | SSAID 备份与恢复 | 支持备份与恢复 Android SSAID，协助保留依赖此识别码的应用状态，不保证免登录 |
 | 权限与 AppOps | 支持运行时权限、AppOps、特殊访问、电池策略等状态备份与恢复 |
 | AppState metadata bundle | 新版 metadata 统一汇总为根层 `app_details_bundle.tar.zst`，远程同步与下载以 bundle 为准 |
@@ -58,6 +57,7 @@ Backup_script 是一款专为 Android 设计的应用数据备份／恢复 Shell
 | 事件等待与进程稳定检查 | 使用 `eventwait` / `procwait` 辅助远程串流等待、备份前稳定等待与恢复守护收尾 |
 | 远程预扫 | 远程备份前批量取得远程列表与 metadata 状态，降低主循环网络开销 |
 | 远程 metadata 健康检查 | 远程 `app_details_bundle.tar.zst` 缺失、损坏或内容不完整会明确提示，不静默忽略 |
+| 远程串流测速 | 依目前设置进行 SMB／WebDAV 5 GiB 上传及下载，不在手机创建大型测速档 |
 | SMB 扫描 | 自动扫描区网 SMB 主机与 share，免手动找 IP |
 | WebDAV 兼容 | 支持逐层建目录、PUT/MOVE/STAT/GET 校验、404 非致命判断等 WebDAV 兼容处理 |
 | 日志与 debug 包 | 自动生成 speed_debug 诊断包，legacy `log/log_yyyy-mm-dd_hh-mm.txt` 会同步主日志摘要 |
@@ -74,7 +74,7 @@ Backup_script 是一款专为 Android 设计的应用数据备份／恢复 Shell
 
 ## 主菜单功能
 
-备份与恢复模式的编号不同，请先确认目前位于工具根目录或备份目录。以下为 r718 菜单。
+备份与恢复模式的编号不同，请先确认目前位于工具根目录或备份目录。以下按 v930 核对；后续版本以运行时显示为准。
 
 ### 备份模式
 
@@ -85,7 +85,7 @@ Backup_script 是一款专为 Android 设计的应用数据备份／恢复 Shell
 | 3 | 备份已更新应用 | 备份版本有变化的应用 |
 | 4 | 备份自定义文件夹 | 使用 `Custom_path` 设置 |
 | 5 | 备份 Wi-Fi | 备份目前设备的 Wi-Fi 设置 |
-| 6 | 测试远程连接 | 检查 WebDAV／SMB 连接与写入能力 |
+| 6 | 测试远程连接 | 连接诊断、扫描；子选项 6 为目前设置的 5 GiB 串流测速 |
 | 7 | 单独上传当前备份 | 上传现有本地备份并汇总 metadata bundle，不重新备份数据 |
 | 8 | 列出远程备份 | 产生 `appList_network.txt` |
 | 9 | 删除远程已卸载应用 | 列出本机已卸载、远程仍有备份的候选，确认后删除 |
@@ -163,22 +163,23 @@ SpeedBackup/
 | `Backup_suffix` | 自定义备份目录后缀，支持日期时间变量 | 空 |
 | `list_location` | 自定义 `appList.txt` 位置 | 空 |
 | `update` | 自动更新：`1` 打开、`0` 关闭 | `1` |
-| `cdn` | 更新 CDN 节点：`0` 直连、`1` ghfast、`2` workers | `0` |
+| `cdn` | 更新 CDN 节点：`0` 直连、`1` ghfast、`2` workers | 新建设置 `1` |
 | `mount_point` | 屏蔽外部挂载点，多个用 `\|` 分隔 | 自订 |
 | `user` | 指定 Android 用户 ID，例如 `0`、`999`；留空时自动判断或询问 | 空 |
 | `Backup_Mode` | `1` 应用 + 数据、`0` 仅安装包 | `1` |
 | `Backup_user_data` | 是否备份 `/data/user/<user>/<package>` | `1` |
 | `Backup_obb_data` | 是否备份 OBB / data 外部数据 | `1` |
 | `backup_media` | App 备份后是否一并备份自定义文件夹 | `0` |
+| `backup_messages` / `backup_calllogs` | 备份短信／MMS与通话纪录，依系统 Provider 能力处理 | `1` |
 | `Background_apps_ignore` | 正在运行中的应用：`1` 忽略、`0` 尝试停止后备份 | `0` |
 | `Custom_path` | 自定义备份路径，每行一个绝对路径 | 依需求 |
 | `blacklist_mode` | 黑名单：`1` 完全忽略、`0` 仅备份安装包 | `0` |
-| `blacklist` | 黑名单应用包名列表 | 空 |
-| `whitelist` | 预装应用白名单 | 依需求 |
+| `blacklist` | 黑名单应用包名，每行一项；列表生成会忽略注解中的包名 | 空 |
+| `whitelist` | 预装应用白名单，每行一项；不覆盖黑名单优先级 | 依需求 |
 | `system` | 系统应用白名单 | 依需求 |
 | `Compression_method` | App 数据使用 `zstd` 或 `tar`；一般 Media／自定义目录另走 tar 仅打包 | `zstd` |
 | `Zstd_level` | 压缩等级 `1`～`22`；`20`～`22` 会激活 ultra | `6` |
-| `Zstd_threads` | 一般压缩线程 `0`～`64`；`0` 自动使用可用内核 | 新建设置 `0`；旧设置补齐可能为 `4` |
+| `Zstd_threads` | 一般压缩线程 `0`～`64`；`0` 自动使用可用内核 | 新建与缺少字段补齐均为 `0` |
 | `Zstd_small_max_bytes` | 已知 tar 输入不超过此大小时使用小档线程；`0` 关闭切换 | `1048576`（1 MiB） |
 | `Zstd_small_threads` | 小档使用的线程数，与 `--single-thread` 不同 | `1` |
 | `Zstd_size_hint` | 使用既有大小计划提供压缩提示，不另外扫描 | `1` |
@@ -191,14 +192,15 @@ SpeedBackup/
 | `webdav_remote_user` | WebDAV 认证用户名 | 空 |
 | `webdav_remote_pass` | WebDAV 认证密码 | 空 |
 | `remote_stream` | 流式备份：`1` 边压边传、`0` 先本地备份再上传 | `0` |
-| `diagnostic_mode` | 诊断模式：`1` 保留更多排查数据、`0` 一般使用 | `0` |
 | `remote_keep_local` | 非流式上传成功后：`1` 保留本地数据报、`0` 删除；不会让流式备份额外保存整包 | `0` |
 | `remote_upload_per_app` | 每个 App 备份后立即上传，非流式模式下节省空间 | `0` |
-| `log_max_size_mb` | `log/` 目录大小上限，留空或 `0` 关闭自动清理 | 留空 |
+| `log_max_size_mb` | `log/` 目录大小上限，留空或 `0` 关闭自动清理 | 新建设置留空；旧设置缺项补入 `1` |
 
 ---
 
 ## 使用方式
+
+设置中的包名清单与自定义路径建议每行一项；不要把含空白的路径自行拆开。旧设置保留原值，添加字段由脚本补齐。`diagnostic_mode` 已不是公开设置，模板同步会移除旧字段；一般运行仍会保留 speed_debug。
 
 ### 调整 zstd 压缩
 
@@ -213,7 +215,7 @@ Zstd_small_threads=1
 Zstd_size_hint=1
 ```
 
-想提高压缩率可调高 `Zstd_level`，代价是更多时间与内存；影音、APK 等已压缩内容可能改善有限。`Zstd_threads` 控制并进程度，不是压缩等级。已有设置不会自动改成新预设；r718 对缺少此字段的旧设置仍补入 `4`，想自动使用内核请明确填 `0`。
+想提高压缩率可调高 `Zstd_level`，代价是更多时间与内存；影音、APK 等已压缩内容可能改善有限。`Zstd_threads` 控制并进程度，不是压缩等级。已有设置保留原值，缺少此字段则补入 `0`；想自动使用内核请明确填 `0`。
 
 一般 Media／自定义文件夹采 tar 仅打包，调整 `Zstd_level` 不会让这些 tar 变小。小档切换与大小提示也只在取得有效大小计划时生效。debug 的 `ZSTD_EFFECTIVE_PARAMS` 可查看每个项目实际使用的值。
 
@@ -223,14 +225,22 @@ Zstd_size_hint=1
 
 **Step 1 — 生成应用列表**
 
-解压后运行 `start.sh`，选择「生成应用列表」。运行完毕后，当前目录会生成 `appList.txt`。
+解压后运行 `start.sh`，选择「生成应用列表」。预设产生 `appList.txt`；自订位置由 `list_location` 决定。
+
+生成时 Dex 同一次查找提供完整已安装集合及候选 App，再经私有暂存盘交给 Rust；一次完成合并、清理、排序、验证及分类报告，Shell 负责原有列出与统计。不是 JNI 直连，也不启动常驻列表 worker。
+
+- 保留注解与空行；有效旧项只在完整集合确认已卸载时移除。仍安装但未列入添加候选的系统 App 不会因此被删除。
+- 既有有效项优先保留；既有已注解项不自动重新加入，但预设桌面／输入法仍强制纳入，桌面排在最后。
+- 新候选先排除指定工具套件，再处理桌面／输入法、黑名单、预装 App（Xposed／白名单例外）、其他 Xposed／一般 App。白名单不盖过黑名单；既有有效项不因重新生成而全面重分类。
+- 预装分类使用明确厂商包名命名空间与精确名单，不用任意子字符串。Xposed 格式辨识不代表模块已激活或作用域已生效。
+- 不完整或冲突数据、无法可靠判定的 APK 扫描失败会停止发布；拒绝不安全输入档，原列表在处理期间被修改时不覆盖。这不是卸载 App 或删除备份数据的功能。
 
 **Step 2 — 编辑应用列表**
 
 打开 `appList.txt`，依需求调整：
 
 - 行首加 `#`：注释该应用，不备份
-- 行首加 `!`：仅备份安装包，不备份数据
+- 应用名称前加 `!`：备份阶段在 `Backup_Mode=1` 时仅备份安装包，不备份数据；不是 Play 安装来源开关。重新生成列表会保留此类标记行，不将其当作普通有效项重写。
 
 **Step 3 — 调整配置**
 
@@ -250,13 +260,25 @@ Zstd_size_hint=1
 
 **Step 2 — 运行恢复**
 
-运行备份文件夹内的 `start.sh`，选择「恢复备份」。脚本会依列表恢复 APK、数据、SSAID、权限、AppOps、特殊访问、电池策略与安装来源。
+运行备份文件夹内的 `start.sh`，选择「恢复备份」。脚本会依列表恢复 APK、数据、SSAID、权限、AppOps、特殊访问、电池策略；APK 安装者依下节现行策略处理，不照搬备份中的原始来源。
 
 **Step 3 — 依提示重启**
 
 若恢复结束后提示存在 SSAID，建议立刻重启后再打开应用。打开 App 后仍需确认登录与数据状态；SSAID 核对成功不代表服务器登录验证一定通过。
 
 > 备份文件夹内每个应用子目录都有 `backup.sh`、`recover.sh`、`upload.sh`，可单独操作单一应用。
+
+---
+
+## APK 安装策略与恢复安全
+
+- 目标 Android 用户的 Play 商店存在、激活且身分可确认时，优先使用 Play 安装者身分，不依 JSON 原始 installer 分流。数据目录或静默安装权限不足时不切换 Play UID；没有可用 Play 身分则使用普通 PM 安装。
+- Play 混合 session 由每 App 一次的 Rust 协调器运行：以 Play UID 创建／提交，root 写入 APK。系统 PM 仍有子进程成本；不是 Java 安装器，也不是整批常驻安装 worker。
+- 不再需要 `!play`；旧恢复清单前缀只作兼容性处理。JSON 安装来源字段仍可用于诊断，不是本次选择路径的依据。此功能不保证 `packageSource=STORE`、Play 授权、免登录或完整性认证。
+- 保留路径、owner、UID/GID、文件描述符、逾时与 commit guard 检查。提交结果不明会回报状态 75，封锁本轮同用户／套件重试及其数据／AppState 恢复；只有明确失败才可依既有政策回退。重启脚本前先确认前次 session 结果。
+- 提交期间可能暂时禁用 Android BackupManager 的全域自动还原，再依日志恢复；同一窗口内其他来源的安装也可能受影响，并非单一 App 隔离开关。
+- 内部数据依目前套件 UID／seInfo 修复 ownership 与 SELinux；外部 data／obb 另走 Android 保存政策。终端宿主与无法安全停止的 App 仍受保护；从 Termux 自身运行时不恢复其宿主数据。
+- 直接串流恢复会改动目标数据，没有整批回滚；失败可能已有部分内容写入。请保留独立备份，勿把「来源预检通过」当成恢复一定成功。
 
 ---
 
@@ -288,6 +310,15 @@ remote_keep_local=0
 | SMB | `smb://192.168.1.100/share/path` | Windows 共享 / Samba / NAS |
 | WebDAV | `http://192.168.1.100:8080/dav/` | NAS / Nextcloud / rclone serve webdav |
 
+### 5 GiB 串流测速
+
+主菜单选 **6 → 6**，使用目前 `remote_type` 与帐密。上传随机数据至本轮专用远程目录，下载时计数后丢弃；手机不创建 5 GiB 测速档。
+
+- 远程需约 5 GiB 可用空间，上下传合计约 10 GiB 流量；请确认网络费用与服务器配额。
+- 终端显示进度与速度，最终摘要使用完整传输平均值。短传输或失败不给成功评级。
+- 正常完成或一般中止会尝试清理本轮目录；清理失败或强制终止后可能残留，依提示确认，不要删除其他备份。
+- 数字包含数据产生、协议、远程保存与缓存影响，是端到端吞吐量，不是纯网络测速或完整备份速度。
+
 ### 远程目录结构
 
 脚本会在远程地址下创建 `Backup_<压缩方式>_<用户ID>/`。以下为示意，实际项目依备份内容而定：
@@ -317,7 +348,7 @@ Backup_zstd_0/
 - **远程 fast-skip**：比对版本、大小、AppState 等记录，符合条件时跳过；这不是逐档内容哈希比对。
 - **远程 metadata bundle 健康检查**：缺失、损坏或内容不完整的 `app_details_bundle.tar.zst` 会明确提示。
 - **失败保护**：流式上传失败时不更新远程 metadata 状态，避免下轮误判已备份完成。
-- **WebDAV 兼容处理**：依服务实际能力选择目录枚举与提交方式；上传后核对远程文件，大小无法取得时明确标示核验范围。
+- **WebDAV 兼容处理**：依服务实际能力选择目录枚举与提交方式；覆写既有文件使用暂存上传后提交，MOVE 不可用时失败，不改成直接破坏旧档的 PUT。请预留新旧档共存空间；上传后核对远程文件，大小无法取得时明确标示核验范围。
 - **SMB 写入预检**：正式备份前会测试远程目录创建与写入能力。
 
 ---
@@ -397,7 +428,9 @@ tar → zstd（选用压缩时）→ WebDAV / SMB
 
 **Step 3 — 从远程下载备份**
 
-备份模式选功能 **10「从远程下载备份」**。脚本会先下载远程根层 `app_details_bundle.tar.zst`，并在本地备份根目录同级解包出各 App 的 `app_details.json`。若远程缺少 `app_details_bundle.tar.zst`，下载会中止，避免产生 metadata 不完整的本地备份。
+备份模式选功能 **10「从远程下载备份」**。脚本会先取得远程根层 `app_details_bundle.tar.zst`，在目的地的交易暂存区处理 metadata 与所选数据，成功发布后，各 App 的 `app_details.json` 位于本地备份根目录对应的子目录。若远程缺少 `app_details_bundle.tar.zst`，下载会中止，避免产生 metadata 不完整的本地备份。
+
+功能 10 会暂存新下载内容并保留发布日志及旧内容，失败时依日志恢复；恢复失败会停止，不把远程缺档当成删除本地旧备份的授权。这是可恢复的多步交易，不是整批原子替换，也不适用于功能 11／12 的直接串流恢复。下载时需为新数据及保留的旧内容预留空间，不要在工作中手动删除交易目录。
 
 下载完成后，直接运行下载文件夹中的 `start.sh` 进行恢复。
 
@@ -425,7 +458,7 @@ recordType=snapshot
 schemaVersion=2
 ```
 
-旧 JSON 已有的 SSAID、权限、AppOps、电池策略与安装来源会尽量恢复；旧 JSON 本来没有的新字段则无法凭空补出。
+旧 JSON 已有的 SSAID、权限、AppOps、电池策略会尽量恢复；安装来源纪录保留作诊断，APK 依现行 Play 优先策略安装。旧 JSON 本来没有的新字段则无法凭空补出。
 
 > 注意：此兼容仅针对本地既有旧备份恢复。新版功能 7 / 功能 10 的远程同步流程采 `app_details_bundle.tar.zst` bundle-only，不再使用远程逐 App `app_details.json` 作为 metadata 主路径。
 
@@ -438,7 +471,7 @@ schemaVersion=2
 - AppState snapshot / restore / verify
 - SSAID 备份与恢复辅助
 - 运行时权限、AppOps、特殊访问、电池策略状态处理
-- 安装来源、installer、Play 来源恢复辅助
+- 安装来源诊断、目标用户的 Play 身分及安装条件查找
 - 批量取得 App 名称、包名、版本、split 信息与安装后状态
 - WebDAV 连接、相对路径检查与传输服务
 - SMB 主机与 share 扫描辅助
@@ -448,7 +481,7 @@ schemaVersion=2
 - 查找保存空间与媒体路径
 - 内置设备型号数据库，release 内不再需要外置 `tools/Device_List`
 
-Rust 原生工具负责文件树、备份计划、统计与文件验证；Dex 负责 Android 状态及相关传输能力。AppState／SSAID 的恢复与验证由 Dex 直接产生分类摘要，避免脚本靠消息措辞重新猜结果。
+Rust 原生工具负责应用列表、JSON、备份计划、统计、受保护的文件操作及每 App 安装 session 协调；Dex 负责 Android 状态、保存政策及相关传输能力。一般文件查找仍保留 GNU find，未全面改为 Rust。AppState／SSAID 的恢复与验证由 Dex 直接产生分类摘要，避免脚本靠消息措辞重新猜结果。
 
 启动自检由 `tools/dex_check.sh` 运行，依实际能力检查兼容性，不只比较版本字符串。摘要会分开列出成功、警告、失败与内核失败；部分新流程使用 `SBRESULT` 统一结果格式。
 
@@ -462,6 +495,8 @@ Rust 原生工具负责文件树、备份计划、统计与文件验证；Dex �
 2. **Download 目录更新**：将完整 release `.zip` 放到 `/storage/emulated/0/Download/`，运行脚本时自动检测。
 3. **QQ 下载目录更新**：从 QQ 下载的完整 release `.zip` 可直接放置后运行脚本更新。
 4. **联网自动更新**：`update=1` 时会检查 GitHub release。
+
+**先让备份／恢复正常结束并退出脚本，再更新；不要修改运行中的工具。** 手动差异更新包只适用其标示的完整基底，按包内说明整组替换；来源码包不是手机安装包。v930 差异更新包适用 v929，不能直接当成 v863 的完整升级包。
 
 **旧版升级请整套更新，不要只替换 `tools.sh`。** 旧更新器可能仍要求原先的独立工具文件名，因而拒绝新版 `speednative` 配置。遇到「缺少旧工具」时，使用发行者提供的兼容更新包，或把完整发行包解压到新的工具目录后使用，保留原备份数据。
 
@@ -505,10 +540,11 @@ log/log_2026-07-25_21-40.txt
 - `extract.log`：恢复解压日志
 - `restore_app_phase_timing.tsv`：恢复阶段耗时统计
 - `restore_apk_timing.tsv`：APK 安装阶段耗时统计
+- `install_session.log` / `install_method.log`：安装 session 与路径判定诊断
 
 stderr 为 0KB 只代表该输出档没有记录，不代表所有检查通过。请一并看 `main.log` 的结果摘要、失败原因、备份预估／实际差异，以及 AppState／SSAID 验证结果。没有有效计划时，单看 `mismatch=0` 也不能判定核对通过。
 
-一般模式会精简成功恢复的详细清单；需要深入排查时才打开 `diagnostic_mode=1`，debug 包也会变大。实际文件名与输出位置以当轮提示为准。
+一般模式会精简成功恢复的详细清单，speed_debug 仍会保留。旧 `diagnostic_mode=1` 已不适用；深入排查请依维护者指示使用对应诊断环境变量。实际文件名与输出位置以当轮提示为准。分享前请检查包名、路径及其他个人信息。
 
 ---
 
@@ -541,7 +577,7 @@ stderr 为 0KB 只代表该输出档没有记录，不代表所有检查通过�
 <details>
 <summary><b>Q5：为什么脚本包含 classes.dex？</b></summary>
 
-`classes.dex` 用于处理 Shell 难以稳定完成的 Android 系统能力，例如 AppState snapshot / restore / verify、SSAID、AppOps、WebDAV daemon、SMB 扫描、安装来源恢复与通知更新。
+`classes.dex` 用于处理 Shell 难以稳定完成的 Android 系统能力，例如 AppState snapshot / restore / verify、SSAID、AppOps、WebDAV daemon、SMB 扫描、安装条件查找与通知更新。APK session 协调由 Rust 运行，不是改用 Java 安装。
 
 感谢 [XayahSuSuSu](https://github.com/XayahSuSuSu) 的 [Android-DataBackup](https://github.com/XayahSuSuSu/Android-DataBackup) 提供 App 支持。
 </details>
@@ -616,6 +652,20 @@ stderr 为 0KB 只代表该输出档没有记录，不代表所有检查通过�
 
 `stderr.log`、`root_daemon_stderr.log`、`webdav_daemon_stderr.log` 为 0KB 通常是正常现象，代表没有错误输出。主流程请看 `main.log` 或 `log/log_yyyy-mm-dd_hh-mm.txt`。
 </details>
+
+---
+
+## 目前核验范围
+
+- 备份预估大小与实际打包大小分开核对，跳过、未知与失败项目分开处理；没有有效预扫计划的项目不能只靠数值相同判定通过。
+- 恢复清单检查可发现缺档、类型、大小与链接等差异，不包含逐档内容哈希及完整 SELinux／ACL 验证。
+- AppState／SSAID 核对通过后，仍需实际打开 App 确认数据与登录；系统、厂商及服务器限制不一定能由脚本还原。
+- WebDAV 的串流耗时可能包含打包、压缩、网络、读取与守护收尾等待，小档显示的低速不能直接当成网络测速结果。
+- 进程观察器与稳定等待不是原子性的「禁止所有新进程启动」保证。自订进程名称、ROM 政策及内核能力仍有限制。
+- 备份封装未因这些安全检查而加密；HTTP 或 HTTPS 由远程设置决定。重要数据请另存独立备份。
+- 性能数据及未采用方案见 [更新日志](CHANGELOG.md)，单机微基准不代表所有 ROM 或完整备份／恢复的加速比例。
+
+---
 
 ## 问题反馈
 

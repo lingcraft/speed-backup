@@ -148,15 +148,13 @@ def update_readme():
     readme_lines = readme.splitlines()
     start_idx, insert_idx = None, None
     for index, line in enumerate(readme_lines):
-        if "概述" in line:
+        if "特色" in line:
             start_idx = index
             break
     if start_idx is not None:
         for index, line in enumerate(readme_lines[start_idx + 1:], start=start_idx + 1):
             if "##" in line:
                 insert_idx = index
-                if "---" in readme_lines[index - 2]:
-                    insert_idx -= 2
                 break
         if insert_idx is None:
             return

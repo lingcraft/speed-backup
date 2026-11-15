@@ -63,7 +63,13 @@ trans_dict = {
         "调试": "除错",
         "文档说明": "文件说明",
         "设置档": "配置",
-        "透过": "通过"
+        "透过": "通过",
+        "位於": "位于"
+    }
+}
+trans_regex = {  # 正则修正
+    "readme": {
+        "YAWAsau/backup_script(?=.*下载)": f"lingcraft/{proj_name}"
     }
 }
 suffixes = (".sh", ".conf", "_List")
@@ -75,6 +81,7 @@ def main():
         simplify()
         upload()
         update_readme()
+        update_docs()
 
 
 def get_latest_release():
@@ -95,6 +102,8 @@ def convert(content, dict_type="script"):
     content = converter.convert(content)
     for key, value in trans_dict.get(dict_type).items():
         content = content.replace(key, value)
+    for pattern, value in trans_regex.get(dict_type, {}).items():
+        content = sub(pattern, value, content)
     return content
 
 
@@ -172,6 +181,22 @@ def update_readme():
     old_readme = file.decoded_content.decode()
     if readme != old_readme:
         my_repo.update_file(path=file.path, message="更新自述", content=readme, sha=file.sha)
+
+
+def update_docs():
+    # docs 根目录下的说明文档与自述共用同一套修正词典
+    for item in src_repo.get_contents("docs"):
+        if item.type != "file" or not item.name.endswith(".md"):
+            continue
+        content = convert(item.decoded_content.decode(), "readme")
+        file = f"docs/{item.name}"
+        try:
+            old = my_repo.get_contents(file)
+        except UnknownObjectException:
+            my_repo.create_file(file, "更新文档", content)
+        else:
+            if old.decoded_content.decode() != content:
+                my_repo.update_file(file, "更新文档", content, old.sha)
 
 
 if __name__ == "__main__":

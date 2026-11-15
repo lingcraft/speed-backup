@@ -12,7 +12,7 @@ Android 应用与数据备份工具，提供原生 App 界面、本地备份及 
 </p>
 
 <p align="center">
-  <a href="https://github.com/YAWAsau/backup_script/releases/latest">下载最新版</a> ·
+  <a href="https://github.com/lingcraft/speed-backup/releases/latest">下载最新版</a> ·
   <a href="docs/USER_GUIDE.md">使用指南</a> ·
   <a href="docs/FAQ.md">常见问题</a> ·
 </p>
@@ -37,7 +37,7 @@ Android 应用与数据备份工具，提供原生 App 界面、本地备份及 
 
 **需求：Android 9 以上、arm64 设备及 Root 权限（Magisk／KernelSU）。**
 
-1. 从 [Releases](https://github.com/YAWAsau/backup_script/releases/latest) 下载完整手机运行包并解压。
+1. 从 [Releases](https://github.com/lingcraft/speed-backup/releases/latest) 下载完整手机运行包并解压。
 2. 使用已取得 Root 权限的 MT 管理器或终端运行 `start.sh`，依提示进入 SpeedBackup App。
 3. 在「设置 → 备份设置」选择备份位置与项目，保存后到功能页开始备份。
 

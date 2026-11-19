@@ -13,7 +13,7 @@ log/log_2026-07-25_21-40.txt
 同时，完整诊断数据会打包到 speed_debug：
 
 ```text
-/data/speed_debug/speed_debug_session_<工作阶段识别码>.tar
+/data/.speedbackup/debug/speed_debug_session_<工作阶段识别码>.tar
 ```
 
 排查问题时，请优先提供 speed_debug tar。里面通常包含：
